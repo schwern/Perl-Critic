@@ -16,7 +16,7 @@ use File::Spec;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ sub violates {
     # 'lib/Foo/Bar.pm' -> ('lib', 'Foo', 'Bar')
     my @path = File::Spec->splitpath($filename);
     $filename = $path[2];
-    $filename =~ s/\.\w+\z//mx;
+    $filename =~ s/[.]\w+\z//mx;
     my @path_parts = grep {$_ ne q{}} File::Spec->splitdir($path[1]), $filename;
 
     # 'Foo::Bar' -> ('Foo', 'Bar')

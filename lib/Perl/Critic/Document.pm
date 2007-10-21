@@ -14,7 +14,7 @@ use Scalar::Util qw(weaken);
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -31,6 +31,13 @@ sub AUTOLOAD {  ## no critic(ProhibitAutoloading,ArgUnpacking)
 sub new {
     my ($class, $doc) = @_;
     return bless { _doc => $doc }, $class;
+}
+
+#-----------------------------------------------------------------------------
+
+sub ppi_document {
+    my ($self) = @_;
+    return $self->{_doc};
 }
 
 #-----------------------------------------------------------------------------
@@ -197,6 +204,12 @@ better than we do here?
 =item $pkg->new($doc)
 
 Create a new instance referencing a PPI::Document instance.
+
+=item $self->ppi_document()
+
+Accessor for the wrapped PPI::Document instance.  Note that altering this
+instance in any way can cause unpredictable failures in Perl::Critic's
+subsequent analysis because some caches may fall out of date.
 
 =item $self->find($wanted)
 

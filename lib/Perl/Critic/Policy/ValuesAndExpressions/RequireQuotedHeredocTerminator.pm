@@ -14,11 +14,11 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $HEREDOC_RX => qr/ \A << \s* ["|'] .* ['|"] \z /x;
+Readonly::Scalar my $HEREDOC_RX => qr/ \A << \s* ["|'] .* ['|"] \z /mx;
 Readonly::Scalar my $DESC       => q{Heredoc terminator must be quoted};
 Readonly::Scalar my $EXPL       => [ 64 ];
 

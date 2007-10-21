@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -29,8 +29,6 @@ sub default_themes       { return qw( core pbp bugs ) }
 sub applies_to           { return 'PPI::Document'     }
 
 #-----------------------------------------------------------------------------
-
-Readonly::Scalar my $PPI_BUG_MISSING_LINE_NUMBER => -1;
 
 sub violates {
     my ( $self, undef, $doc ) = @_;
@@ -51,12 +49,7 @@ sub violates {
         last if $stmnt->isa('PPI::Statement::End');
         last if $stmnt->isa('PPI::Statement::Data');
 
-        # work around PPI bug: C<({})> results in a statement without a
-        # location.
-        my $stmnt_line =
-            $stmnt->location()
-                ? $stmnt->location()->[0]
-                : $PPI_BUG_MISSING_LINE_NUMBER;
+        my $stmnt_line = $stmnt->location()->[0];
         if ( (! defined $strict_line) || ($stmnt_line < $strict_line) ) {
             push @viols, $self->violation( $DESC, $EXPL, $stmnt );
         }

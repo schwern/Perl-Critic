@@ -11,33 +11,36 @@ use strict;
 use warnings;
 use Readonly;
 
-use Perl::Critic::Utils qw{ :severities };
+use Perl::Critic::Utils qw{ :booleans :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Scalar my $DESC => q{Code structure is deeply nested};
 Readonly::Scalar my $EXPL => q{Consider refactoring};
 
+my $DEFAULT_MAX_NESTS = 5;
+
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'max_nests',
-            description     => 'The maximum number of nested constructs to allow.',
-            default_string  => '5',
-            behavior        => 'integer',
-            integer_minimum => 1,
-        },
-    );
-}
-
+sub supported_parameters { return qw( max_nests )                 }
 sub default_severity { return $SEVERITY_MEDIUM                }
 sub default_themes   { return qw(core maintenance complexity) }
 sub applies_to       { return 'PPI::Statement::Compound'      }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set configuration
+    $self->{_max_nests} = defined $config->{max_nests} ? $config->{max_nests}
+                                                       : $DEFAULT_MAX_NESTS;
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 

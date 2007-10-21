@@ -11,10 +11,10 @@ use strict;
 use warnings;
 use Readonly;
 
-use Perl::Critic::Utils qw{ :severities :classification };
+use Perl::Critic::Utils qw{ :booleans :severities :classification };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -23,24 +23,24 @@ Readonly::Scalar my $DESC => q{Code not contained in explicit package};
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name           => 'exempt_scripts',
-            description    => q{Don't require programs to contain a package statement.},
-            default_string => '1',
-            behavior       => 'boolean',
-        },
-    );
-}
-
+sub supported_parameters { return qw( exempt_scripts ) }
 sub default_severity { return $SEVERITY_HIGH  }
 sub default_themes   { return qw( core bugs ) }
 sub applies_to       { return 'PPI::Document' }
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $PPI_BUG_MISSING_LINE_NUMBER => -1;
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set config, if defined
+    $self->{_exempt_scripts} =
+        defined $config->{exempt_scripts} ? $config->{exempt_scripts} : 1;
+
+    return $TRUE;
+}
+
+#-----------------------------------------------------------------------------
 
 sub violates {
     my ( $self, $elem, $doc ) = @_;
@@ -63,12 +63,7 @@ sub violates {
 
     my @viols = ();
     for my $stmnt ( @non_packages ) {
-        # work around PPI bug: C<({})> results in a statement without a
-        # location.
-        my $stmnt_line =
-            $stmnt->location()
-                ? $stmnt->location()->[0]
-                : $PPI_BUG_MISSING_LINE_NUMBER;
+        my $stmnt_line = $stmnt->location()->[0];
         if ( (! defined $package_line) || ($stmnt_line < $package_line) ) {
             push @viols, $self->violation( $DESC, $EXPL, $stmnt );
         }

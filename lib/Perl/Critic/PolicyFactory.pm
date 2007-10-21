@@ -9,30 +9,21 @@ package Perl::Critic::PolicyFactory;
 
 use strict;
 use warnings;
-
+use Carp qw(confess);
 use English qw(-no_match_vars);
-
 use File::Spec::Unix qw();
 use List::MoreUtils qw(any);
-
 use Perl::Critic::Utils qw{
     :characters
     $POLICY_NAMESPACE
     :data_conversion
-    &policy_long_name
+    policy_long_name
     :internal_lookup
 };
-use Perl::Critic::Exception::AggregateConfiguration;
-use Perl::Critic::Exception::Configuration;
-use Perl::Critic::Exception::Fatal::Generic qw{ &throw_generic };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
-use Perl::Critic::Exception::Fatal::PolicyDefinition
-    qw{ &throw_policy_definition };
 use Perl::Critic::Utils::Constants qw{ :profile_strictness };
+use Perl::Critic::ConfigErrors;
 
-use Exception::Class;   # this must come after "use P::C::Exception::*"
-
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -45,7 +36,6 @@ sub import {
 
     my ( $class, %args ) = @_;
     my $test_mode = $args{-test};
-    my $extra_test_policies = $args{'-extra-test-policies'};
 
     if ( not @SITE_POLICY_NAMES ) {
         eval {
@@ -56,25 +46,16 @@ sub import {
         };
 
         if ( $EVAL_ERROR ) {
-            throw_generic
-                qq{Can't load Policies from namespace "$POLICY_NAMESPACE": $EVAL_ERROR};
+            confess qq{Can't load Policies from namespace "$POLICY_NAMESPACE": $EVAL_ERROR};
         }
         elsif ( ! @SITE_POLICY_NAMES ) {
-            throw_generic
-                qq{No Policies found in namespace "$POLICY_NAMESPACE"};
+            confess qq{No Policies found in namespace "$POLICY_NAMESPACE"};
         }
     }
 
     # In test mode, only load native policies, not third-party ones
     if ( $test_mode && any {m/\b blib \b/xms} @INC ) {
         @SITE_POLICY_NAMES = _modules_from_blib( @SITE_POLICY_NAMES );
-
-        if ($extra_test_policies) {
-            my @extra_policy_full_names =
-                map { "${POLICY_NAMESPACE}::$_" } @{$extra_test_policies};
-
-            push @SITE_POLICY_NAMES, @extra_policy_full_names;
-        }
     }
 
     return 1;
@@ -117,7 +98,7 @@ sub _init {
 
     my $profile = $args{-profile};
     $self->{_profile} = $profile
-        or throw_internal q{The -profile argument is required};
+        or confess q{The -profile argument is required};
 
     my $incoming_errors = $args{-errors};
     my $profile_strictness = $args{'-profile-strictness'};
@@ -129,12 +110,12 @@ sub _init {
         # If we're supposed to be strict or problems have already been found...
         if (
                 $profile_strictness eq $PROFILE_STRICTNESS_FATAL
-            or  ( $incoming_errors and @{ $incoming_errors->exceptions() } )
+            or  ( $incoming_errors and @{ $incoming_errors->messages() } )
         ) {
             $errors =
                 $incoming_errors
                     ? $incoming_errors
-                    : Perl::Critic::Exception::AggregateConfiguration->new();
+                    : Perl::Critic::ConfigErrors->new();
         }
 
         $self->_validate_policies_in_profile( $errors );
@@ -142,9 +123,9 @@ sub _init {
         if (
                 not $incoming_errors
             and $errors
-            and $errors->has_exceptions()
+            and @{ $errors->messages() }
         ) {
-            $errors->rethrow();
+            die $errors;  ## no critic (RequireCarping)
         }
     }
 
@@ -158,7 +139,8 @@ sub create_policy {
     my ($self, %args ) = @_;
 
     my $policy_name = $args{-name}
-        or throw_internal q{The -name argument is required};
+        or confess q{The -name argument is required};
+
 
     # Normalize policy name to a fully-qualified package name
     $policy_name = policy_long_name( $policy_name );
@@ -167,33 +149,28 @@ sub create_policy {
     # Get the policy parameters from the user profile if they were
     # not given to us directly.  If none exist, use an empty hash.
     my $profile = $self->_profile();
-    my $policy_config = $args{-params}
+    my $policy_params = $args{-params}
         || $profile->policy_params($policy_name) || {};
 
-
-    # This function will delete keys from $policy_config, so we copy them to
+    # This function will delete keys from $policy_params, so we copy them to
     # avoid modifying the callers's hash.  What a pain in the ass!
-    my %policy_config_copy = $policy_config ? %{$policy_config} : ();
+    my %policy_params_copy = $policy_params ? %{$policy_params} : ();
 
 
     # Pull out base parameters.
-    my $user_set_themes = delete $policy_config_copy{set_themes};
-    my $user_add_themes = delete $policy_config_copy{add_themes};
-    my $user_severity   = delete $policy_config_copy{severity};
+    my $user_set_themes = delete $policy_params_copy{set_themes};
+    my $user_add_themes = delete $policy_params_copy{add_themes};
+    my $user_severity   = delete $policy_params_copy{severity};
+
+
+    # Validate remaining parameters. This dies on failure
+    $self->_validate_policy_params( $policy_name, \%policy_params_copy );
+
 
     # Construct policy from remaining params.  Trap errors.
-    my $policy = eval { $policy_name->new( %policy_config_copy ) };
+    my $policy = eval { $policy_name->new( %policy_params_copy ) };
+    confess qq{Unable to create policy '$policy_name': $EVAL_ERROR} if $EVAL_ERROR;
 
-    if ($EVAL_ERROR) {
-        my $exception = Exception::Class->caught();
-
-        if (ref $exception) {
-            $exception->rethrow();
-        }
-
-        throw_policy_definition
-            qq{Unable to create policy '$policy_name': $EVAL_ERROR};
-    }
 
     # Set base attributes on policy
     if ( defined $user_severity ) {
@@ -211,6 +188,8 @@ sub create_policy {
         $policy->add_themes( @add_themes );
     }
 
+    $policy->__set_parameters(\%policy_params_copy);
+
     return $policy;
 }
 
@@ -218,29 +197,8 @@ sub create_policy {
 
 sub create_all_policies {
 
-    my ( $self, $incoming_errors ) = @_;
-
-    my $errors =
-        $incoming_errors
-            ? $incoming_errors
-            : Perl::Critic::Exception::AggregateConfiguration->new();
-    my @policies;
-
-    foreach my $name ( site_policy_names() ) {
-        my $policy = eval { $self->create_policy( -name => $name ) };
-
-        $errors->add_exception_or_rethrow( $EVAL_ERROR );
-
-        if ( $policy ) {
-            push @policies, $policy;
-        }
-    }
-
-    if ( not $incoming_errors and $errors->has_exceptions() ) {
-        $errors->rethrow();
-    }
-
-    return @policies;
+    my $self = shift;
+    return map { $self->create_policy( -name => $_ ) } site_policy_names();
 }
 
 #-----------------------------------------------------------------------------
@@ -255,6 +213,29 @@ sub _profile {
     my ($self) = @_;
 
     return $self->{_profile};
+}
+
+#-----------------------------------------------------------------------------
+
+sub _validate_policy_params {
+    my ($self, $policy, $params) = @_;
+
+    # If the Policy author hasn't provided the "supported_parameters" method,
+    # then we can't tell which parameters it supports.  So we let it go.
+    return if not $policy->can('supported_parameters');
+    my @supported_params = $policy->supported_parameters();
+
+    my %is_supported = hashify( @supported_params );
+    my $msg = $EMPTY;
+
+    for my $offered_param ( keys %{ $params } ) {
+        if ( not defined $is_supported{$offered_param} ) {
+            $msg .= qq{Parameter "$offered_param" isn't supported by $policy\n};
+        }
+    }
+
+    die "$msg\n" if $msg;
+    return 1;
 }
 
 #-----------------------------------------------------------------------------

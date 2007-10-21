@@ -10,36 +10,29 @@ package Perl::Critic::Theme;
 use strict;
 use warnings;
 use English qw(-no_match_vars);
+use Carp qw(confess);
 use Readonly;
 
 use base qw{ Exporter };
 
 use List::MoreUtils qw(any);
-
 use Perl::Critic::Utils qw{ :characters :data_conversion };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
-use Perl::Critic::Exception::Configuration::Option::Global::ParameterValue
-    qw{ &throw_global_value };
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Array our @EXPORT_OK => qw{
     $RULE_INVALID_CHARACTER_REGEX
-    &cook_rule
+    cook_rule
 };
 
 #-----------------------------------------------------------------------------
 
 Readonly::Scalar our $RULE_INVALID_CHARACTER_REGEX =>
-    qr/ ( [^()\s\w\d\+\-\*\&\|\!] ) /xms;
-
-#-----------------------------------------------------------------------------
-
-Readonly::Scalar my $CONFIG_KEY => 'theme';
+    qr/ ( [^()\s\w\d+\-*&|!] ) /xms;
 
 #-----------------------------------------------------------------------------
 
@@ -58,17 +51,14 @@ sub _init {
     my ($self, %args) = @_;
     my $rule = $args{-rule} || $EMPTY;
 
-    if ( $rule =~ m/$RULE_INVALID_CHARACTER_REGEX/xms ) {
-        throw_global_value
-            option_name     => $CONFIG_KEY,
-            option_value    => $rule,
-            message_suffix => qq{contains an invalid character: "$1".};
-    }
+    die qq{Illegal character "$1" in theme rule.\n}
+        if $rule =~ m/$RULE_INVALID_CHARACTER_REGEX/xms;
 
     $self->{_rule} = cook_rule( $rule );
 
     return $self;
 }
+
 
 #-----------------------------------------------------------------------------
 
@@ -82,12 +72,10 @@ sub rule {
 sub policy_is_thematic {
 
     my ($self, %args) = @_;
-    my $policy = $args{-policy}
-        || throw_internal 'The -policy argument is required';
-    ref $policy
-        || throw_internal 'The -policy must be an object';
+    my $policy = $args{-policy} || confess 'The -policy argument is required';
+    ref $policy || confess 'The -policy must be an object';
 
-    my $rule = $self->{_rule} or return 1;
+    my $rule = $self->{_rule} || return 1;
     my %themes = hashify( $policy->get_themes() );
 
     # This bit of magic turns the rule into a perl expression that can be
@@ -99,13 +87,7 @@ sub policy_is_thematic {
     my $as_code = $rule; #Making a copy, so $rule is preserved
     $as_code =~ s/ ( [\w\d]+ ) /exists $themes{$1} || 0/gemx;
     my $is_thematic = eval $as_code;  ## no critic (ProhibitStringyEval)
-
-    if ($EVAL_ERROR) {
-        throw_global_value
-            option_name     => $CONFIG_KEY,
-            option_value    => $rule,
-            message_suffix  => q{contains a syntax error.};
-    }
+    die qq{Syntax error in theme "$rule"\n} if $EVAL_ERROR;
 
     return $is_thematic;
 }

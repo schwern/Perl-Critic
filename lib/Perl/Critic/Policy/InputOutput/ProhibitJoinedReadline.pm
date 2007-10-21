@@ -12,10 +12,10 @@ use warnings;
 use Readonly;
 use List::MoreUtils qw(any);
 
-use Perl::Critic::Utils qw{ :severities :classification &parse_arg_list };
+use Perl::Critic::Utils qw{ :severities :classification parse_arg_list };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 

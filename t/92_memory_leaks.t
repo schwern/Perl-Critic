@@ -10,8 +10,6 @@
 use strict;
 use warnings;
 
-use English qw{ -no_match_vars };
-
 use Test::More; #plan set below
 
 use Perl::Critic::PolicyFactory (-test => 1);
@@ -51,11 +49,9 @@ plan( skip_all => 'Test::Memory::Cycle requried to test memory leaks') if $@;
     # One test for each violation, plus one each for Critic and Document.
     plan( tests => scalar @violations + 2 );
 
-    memory_cycle_ok( $pc_doc, 'cycles in document' );
-
-    memory_cycle_ok( $critic, 'cycles in Perl::Critic instance' );
-
-    memory_cycle_ok( $_, 'cycles in violation' ) for @violations;
+    memory_cycle_ok( $pc_doc );
+    memory_cycle_ok( $critic );
+    memory_cycle_ok($_) for @violations;
 }
 
 #-----------------------------------------------------------------------------

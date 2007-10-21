@@ -11,32 +11,28 @@ use strict;
 use warnings;
 use Readonly;
 
-use Perl::Critic::Utils qw{ :severities :data_conversion };
+use Perl::Critic::Utils qw{ :booleans :severities :data_conversion };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Scalar my $DESC => 'Ambiguous name for variable or subroutine';
 Readonly::Scalar my $EXPL => [ 48 ];
 
-Readonly::Scalar my $DEFAULT_FORBID =>
-    'abstract bases close contract last left no record right second set';
+Readonly::Array my @DEFAULT_FORBID =>
+    qw( last      contract
+        set       record
+        left      second
+        right     close
+        no        bases
+        abstract
+    );
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'forbid',
-            description     => 'The variable names that are not to be allowed.',
-            default_string  => $DEFAULT_FORBID,
-            behavior        => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw( forbid )             }
 sub default_severity { return $SEVERITY_MEDIUM         }
 sub default_themes   { return qw(core pbp maintenance) }
 sub applies_to       { return qw(PPI::Statement::Sub
@@ -44,7 +40,21 @@ sub applies_to       { return qw(PPI::Statement::Sub
 
 #-----------------------------------------------------------------------------
 
-sub default_forbidden_words { return words_from_string( $DEFAULT_FORBID ) }
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set configuration, if defined
+    my @forbid;
+    if ( defined $config->{forbid} ) {
+        @forbid = words_from_string( $config->{forbid} );
+    }
+    else {
+        @forbid = @DEFAULT_FORBID;
+    }
+    $self->{_forbid} = { hashify( @forbid ) };
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 
@@ -121,7 +131,7 @@ names.
 
 The default list of forbidden words is:
 
-  abstract bases close contract last left no record right second set
+  last set left right no abstract contract record second close bases
 
 This list can be changed by giving a value for C<forbid> of a series of
 forbidden words separated by spaces.
@@ -136,11 +146,6 @@ C<$HOME/.perlcriticrc>:
 =head1 METHODS
 
 =over 8
-
-=item default_forbidden_words()
-
-This can be called as a class or instance method.  It returns the list
-of words that are forbidden by default.
 
 =back
 

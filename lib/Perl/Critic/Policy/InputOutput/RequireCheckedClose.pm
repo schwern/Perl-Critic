@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -59,9 +59,9 @@ The perl builtin I/O function C<close> returns a false value on failure. That
 value should be checked to ensure that the close was successful.
 
 
-  my $error = close $filehanle;                   # ok
-  close $filehanle or die "unable to close: $!";  # ok
-  close $filehanle;                               # not ok
+  my $error = close $filehandle;                   # ok
+  close $filehandle or die "unable to close: $!";  # ok
+  close $filehandle;                               # not ok
 
 =head1 AUTHOR
 

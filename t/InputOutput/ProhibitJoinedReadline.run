@@ -31,7 +31,6 @@ $content = join($var, <>);
 
 ## name ppi failures
 ## failures 8
-## TODO PPI bug -- readline misinterpreted as gt/lt after comma
 ## cut
 
 $content = join '', <$fh>;
@@ -42,6 +41,14 @@ $content = join $var, <$fh>;
 $content = join $var, <STDIN>;
 $content = join($var, <$fh>);
 $content = join($var, <STDIN>);
+
+#-----------------------------------------------------------------------------
+
+## name code coverage
+## failures 0
+## cut
+
+$self->join($chain_link_1, $chain_link_2);
 
 #-----------------------------------------------------------------------------
 

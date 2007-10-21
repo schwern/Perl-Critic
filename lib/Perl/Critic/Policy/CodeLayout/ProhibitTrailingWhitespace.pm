@@ -19,11 +19,11 @@ use Perl::Critic::Utils qw{ :characters :severities };
 
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $DESCRIPTION => q{Don't use whitespace at the end of lines};
+Readonly::Scalar my $EXPL => q{Don't use whitespace at the end of lines};
 
 ## no critic (RequireInterpolationOfMetachars)
 Readonly::Hash my %C_STYLE_ESCAPES =>
@@ -40,7 +40,7 @@ Readonly::Hash my %C_STYLE_ESCAPES =>
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters { return ()                       }
+sub supported_parameters { return qw{ }                    }
 sub default_severity     { return $SEVERITY_LOWEST         }
 sub default_themes       { return qw( core maintenance )   }
 sub applies_to           { return 'PPI::Token::Whitespace' }
@@ -59,11 +59,11 @@ sub violates {
     return if length($content) < 2;
     return if qq{\n} ne chop $content;
 
-    my $explanation = q{Found "};
-    $explanation .= join $EMPTY, map { _escape($_) } split $EMPTY, $content;
-    $explanation .= q{" at the end of the line};
+    my $description = q{Found "};
+    $description .= join $EMPTY, map { _escape($_) } split $EMPTY, $content;
+    $description .= q{" at the end of the line};
 
-    return $self->violation( $DESCRIPTION, $explanation, $token );
+    return $self->violation( $description, $EXPL, $token );
 }
 
 sub _escape {

@@ -17,13 +17,14 @@ use List::MoreUtils qw(uniq any);
 use English qw(-no_match_vars);
 use Carp;
 
-use Perl::Critic::Utils qw{ :booleans :severities &split_nodes_on_comma };
+use Perl::Critic::Utils qw{ :booleans :severities split_nodes_on_comma };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
+Readonly::Scalar my $DEFAULT_MAX_ARGUMENTS => 5;
 Readonly::Scalar my $AT => q{@}; ##no critic(Interpolation)
 Readonly::Scalar my $AT_ARG => q{@_}; ##no critic(Interpolation)
 
@@ -32,22 +33,25 @@ Readonly::Scalar my $EXPL => [182];
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'max_arguments',
-            description     =>
-                'The maximum number of arguments to allow a subroutine to have.',
-            default_string  => '5',
-            behavior        => 'integer',
-            integer_minimum => 1,
-        },
-    );
-}
-
+sub supported_parameters { return qw(max_arguments) }
 sub default_severity     { return $SEVERITY_MEDIUM         }
 sub default_themes       { return qw( core pbp maintance ) }
 sub applies_to           { return 'PPI::Statement::Sub'    }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set configuration if defined
+    $self->{_max_arguments} =
+            defined $config->{max_arguments}
+        &&  $config->{max_arguments} =~ m/(\d+)/xms
+
+            ? $1 : $DEFAULT_MAX_ARGUMENTS;
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 
@@ -59,7 +63,7 @@ sub violates {
 
     my $num_args;
     if ($elem->prototype) {
-       # subtract two for the "()" on the prototype
+       # subtract two for the "()" on the prototype 
        $num_args = -2 + length $elem->prototype;
     } else {
        $num_args = _count_args($elem->block->schildren);
@@ -77,7 +81,7 @@ sub _count_args {
     # look for these patterns:
     #    " ... = @_;"    => then examine previous variable list
     #    " ... = shift;" => counts as one arg, then look for more
-
+   
     return 0 if !@statements;  # no statements
 
     my $statement = shift @statements;

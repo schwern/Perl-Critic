@@ -11,10 +11,10 @@ use strict;
 use warnings;
 use Readonly;
 
-use Perl::Critic::Utils qw{ :severities };
+use Perl::Critic::Utils qw{ :booleans :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -23,29 +23,30 @@ Readonly::Scalar my $EXPL => [ 59 ];
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $MINIMUM_INTEGER_WITH_MULTIPLE_DIGITS => 10;
-
-sub supported_parameters {
-    return (
-        {
-            name            => 'min_value',
-            description     => 'The minimum absolute value to require separators in.',
-            default_string  => '10_000',
-            behavior        => 'integer',
-            integer_minimum => $MINIMUM_INTEGER_WITH_MULTIPLE_DIGITS,
-        },
-    );
-}
-
+sub supported_parameters { return qw( min_value )         }
 sub default_severity  { return $SEVERITY_LOW           }
 sub default_themes    { return qw( core pbp cosmetic ) }
 sub applies_to        { return 'PPI::Token::Number'    }
 
 #-----------------------------------------------------------------------------
 
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set configuration, if defined
+    $self->{_min} =
+        defined $config->{min_value}
+            ? $config->{min_value}
+            : 10_000;
+
+    return $TRUE;
+}
+
+#-----------------------------------------------------------------------------
+
 sub violates {
     my ( $self, $elem, undef ) = @_;
-    my $min = $self->{_min_value};
+    my $min = $self->{_min};
 
     return if $elem !~ m{ \d{4} }mx;
     return if abs _to_number($elem) < $min;
@@ -57,11 +58,6 @@ sub violates {
 
 sub _to_number {
     my $elem  = shift;
-
-    # TODO: when we can depend on PPI > v1.118, we can remove this if()
-    if ( $elem->can('literal') ) {
-        return $elem->literal();
-    }
 
     # This eval is necessary because Perl only supports the underscore
     # during compilation, not numification.
@@ -104,7 +100,7 @@ thus, all numbers >= 10,000 and <= -10,000 must have separators.  For
 example:
 
   [ValuesAndExpressions::RequireNumberSeparators]
-  min_value = 100_000    # That's one-hundred-thousand!
+  min_value = 100000    # That's one-hundred-thousand!
 
 =head1 NOTES
 

@@ -13,15 +13,13 @@ use Readonly;
 
 use List::MoreUtils qw(any);
 
-use Perl::Critic::Exception::Configuration::Option::Policy::ParameterValue
-    qw{ &throw_policy_value };
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
 };
 
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -30,17 +28,7 @@ Readonly::Scalar my $DESC => q{Prohibited module used};
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'modules',
-            description     => 'The names of or patterns for modules to forbid.',
-            default_string  => $EMPTY,
-            behavior        => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw( modules )             }
 sub default_severity  { return $SEVERITY_HIGHEST         }
 sub default_themes    { return qw( core bugs )           }
 sub applies_to        { return 'PPI::Statement::Include' }
@@ -54,23 +42,17 @@ sub initialize_if_enabled {
     $self->{_evil_modules_rx} = [];  #Array
 
     #Set config, if defined
-    if ( defined $self->{_modules} ) {
-        my @modules = sort keys %{ $self->{_modules} };
-        for my $module ( @modules ) {
+    if ( defined $config->{modules} ) {
+        for my $module ( words_from_string( $config->{modules} ) ) {
+
             if ( $module =~ m{ \A [/] (.+) [/] \z }mx ) {
 
                 # These are module name patterns (e.g. /Acme/)
                 my $re = $1; # Untainting
-                my $pattern = eval { qr/$re/ };
+                my $pattern = eval { qr/$re/ };  ##no critic (RegularExpressions::.*)
 
-                if ( $EVAL_ERROR ) {
-                    throw_policy_value
-                        policy         => $self->get_short_name(),
-                        option_name    => 'modules',
-                        option_value   => ( join q{", "}, @modules ),
-                        message_suffix =>
-                            qq{contains an invalid regular expression: "$module"};
-                }
+                die qq{Regexp syntax error in your profile: "$module"\n}
+                    if $EVAL_ERROR;
 
                 push @{ $self->{_evil_modules_rx} }, $pattern;
             }

@@ -10,12 +10,12 @@ package Perl::Critic::PolicyListing;
 
 use strict;
 use warnings;
+use Carp qw(carp confess);
 use English qw(-no_match_vars);
-
 use Perl::Critic::Policy qw();
 use overload ( q{""} => 'to_string');
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 

@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -32,8 +32,7 @@ sub applies_to           { return 'PPI::Token::Magic'      }
 
 sub violates {
     my ($self, $elem, $doc) = @_;
-    return if $elem !~ m/\A \$\d \z/mx;
-    return if $elem eq '$0';   ## no critic(RequireInterpolationOfMetachars)
+    return if $elem !~ m/\A \$[1-9] \z/mx;
     return if _is_in_conditional_expression($elem);
     return if _is_in_conditional_structure($elem);
     return $self->violation( $DESC, $EXPL, $elem );

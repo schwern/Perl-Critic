@@ -46,11 +46,11 @@ exponentials
 filename
 Guzis
 HEREDOC
+HEREDOCS
 HEREDOCs
 IDE
 Maxia
 Mehner
-metadata
 multi-line
 namespace
 namespaces
@@ -58,10 +58,9 @@ PBP
 perlcritic
 perlcriticrc
 PolicyListing
-PolicyParameter
 postfix
-PPI
 programmatically
+PPI
 Readonly
 refactor
 refactoring

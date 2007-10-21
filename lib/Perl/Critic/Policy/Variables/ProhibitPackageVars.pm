@@ -14,11 +14,11 @@ use Readonly;
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
 };
-use List::MoreUtils qw(all);
+use List::MoreUtils qw(all any);
 use Carp qw( carp );
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -27,38 +27,32 @@ Readonly::Scalar my $EXPL => [ 73, 75 ];
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'packages',
-            description     => 'The base set of packages to allow variables for.',
-            default_string  => 'File::Find Data::Dumper',
-            behavior        => 'string list',
-        },
-        {
-            name            => 'add_packages',
-            description     => 'The set of packages to allow variables for, in addition to those given in "packages".',
-            default_string  => $EMPTY,
-            behavior        => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw( packages add_packages ) }
 sub default_severity { return $SEVERITY_MEDIUM            }
 sub default_themes   { return qw(core pbp maintenance)    }
 sub applies_to       { return qw(PPI::Token::Symbol
                                  PPI::Statement::Variable
                                  PPI::Statement::Include) }
 
+Readonly::Array our @DEFAULT_PACKAGE_EXCEPTIONS =>
+    qw( File::Find Data::Dumper );
 
 #-----------------------------------------------------------------------------
 
 sub initialize_if_enabled {
     my ($self, $config) = @_;
 
-    $self->{_all_packages} = {
-        hashify keys %{ $self->{_packages} }, keys %{ $self->{_add_packages} }
-    };
+    # Set list of package exceptions from configuration, if defined.
+    $self->{_packages} =
+        defined $config->{packages}
+            ? [ words_from_string( $config->{packages} ) ]
+            : [ @DEFAULT_PACKAGE_EXCEPTIONS ];
+
+    # Add to list of packages
+    my $packages = delete $config->{add_packages};
+    if ( defined $packages ) {
+        push @{$self->{_packages}}, words_from_string( $packages );
+    }
 
     return $TRUE;
 }
@@ -88,7 +82,7 @@ sub _is_package_var {
     my ($package, $name) = $elem =~ m{ \A [@\$%] (.*) :: (\w+) \z }mx;
     return if not defined $package;
     return if _all_upcase( $name );
-    return if $self->{_all_packages}->{$package};
+    return if any { $package eq $_ } @{$self->{_packages}};
     return 1;
 }
 

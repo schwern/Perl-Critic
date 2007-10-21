@@ -9,36 +9,48 @@ package Perl::Critic::Policy::ValuesAndExpressions::ProhibitLongChainsOfMethodCa
 
 use strict;
 use warnings;
-use Readonly;
 
-use Perl::Critic::Utils qw{ :characters :severities };
-use Perl::Critic::Utils::PPI qw{ &is_ppi_expression_or_generic_statement };
+use Perl::Critic::Utils qw{ :booleans :characters :severities };
+use Perl::Critic::Utils::PPI qw{ is_ppi_expression_or_generic_statement };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $EXPL =>
+my $EXPL =
     q{Long chains of method calls indicate code that is too tightly coupled};
 
 #-----------------------------------------------------------------------------
 
+my $DEFAULT_MAX_CHAIN_LENGTH = 3;
+
 sub supported_parameters {
-    return (
-        {
-            name            => 'max_chain_length',
-            description     => 'The number of chained calls to allow.',
-            default_string  => '3',
-            behavior        => 'integer',
-            integer_minimum => 1,
-        },
-    );
+    return qw{ max_chain_length };
 }
 
 sub default_severity { return $SEVERITY_LOW          }
 sub default_themes   { return qw( core maintenance ) }
 sub applies_to       { return qw{ PPI::Statement };  }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    my $max_chain_length = $config->{max_chain_length};
+    if (
+            not $max_chain_length
+        or  $max_chain_length !~ m/ \A \d+ \z /xms
+        or  $max_chain_length < 1
+    ) {
+        $max_chain_length = $DEFAULT_MAX_CHAIN_LENGTH;
+    }
+
+    $self->{_max_chain_length} = $max_chain_length;
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 

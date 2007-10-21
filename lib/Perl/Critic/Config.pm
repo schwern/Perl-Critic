@@ -9,32 +9,24 @@ package Perl::Critic::Config;
 
 use strict;
 use warnings;
+use Carp qw(confess);
 use English qw(-no_match_vars);
-use Readonly;
 
 use List::MoreUtils qw(any none apply);
 use Scalar::Util qw(blessed);
 
-use Perl::Critic::Exception::AggregateConfiguration;
-use Perl::Critic::Exception::Configuration;
-use Perl::Critic::Exception::Configuration::Option::Global::ParameterValue;
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
+use Perl::Critic::ConfigErrors;
 use Perl::Critic::PolicyFactory;
-use Perl::Critic::Theme qw( $RULE_INVALID_CHARACTER_REGEX &cook_rule );
+use Perl::Critic::Theme qw( $RULE_INVALID_CHARACTER_REGEX cook_rule );
 use Perl::Critic::UserProfile qw();
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :internal_lookup :classification
 };
 use Perl::Critic::Utils::Constants qw{ :profile_strictness };
-use Perl::Critic::Utils::DataConversion qw{ &boolean_to_number };
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
-
-#-----------------------------------------------------------------------------
-
-Readonly::Scalar my $SINGLE_POLICY_CONFIG_KEY => 'single-policy';
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 # Constructor
@@ -57,7 +49,7 @@ sub _init {
         $args{-severity} ||= $SEVERITY_LOWEST;
     }
 
-    my $errors = Perl::Critic::Exception::AggregateConfiguration->new();
+    my $errors = Perl::Critic::ConfigErrors->new();
 
     # Construct the UserProfile to get default options.
     my $profile_source  = $args{-profile}; #Can be file path or data struct
@@ -79,8 +71,8 @@ sub _init {
         'exclude', $args{-exclude}, $defaults->exclude(), $errors
     );
     $self->_validate_and_save_regex(
-        $SINGLE_POLICY_CONFIG_KEY,
-        $args{ qq/-$SINGLE_POLICY_CONFIG_KEY/ },
+        'single-policy',
+        $args{'-single-policy'},
         $defaults->single_policy(),
         $errors,
     );
@@ -92,9 +84,10 @@ sub _init {
     # If given, these options can be true or false (but defined)
     # We normalize these to numeric values by multiplying them by 1;
     {
-        $self->{_force} = boolean_to_number( _dor( $args{-force}, $defaults->force() ) );
-        $self->{_only}  = boolean_to_number( _dor( $args{-only},  $defaults->only()  ) );
-        $self->{_color} = boolean_to_number( _dor( $args{-color}, $defaults->color() ) );
+        no warnings 'numeric'; ## no critic (ProhibitNoWarnings)
+        $self->{_force} = 1 * _dor( $args{-force}, $defaults->force() );
+        $self->{_only}  = 1 * _dor( $args{-only},  $defaults->only()  );
+        $self->{_color} = 1 * _dor( $args{-color}, $defaults->color() );
     }
 
     $self->_validate_and_save_theme($args{-theme}, $errors);
@@ -108,18 +101,18 @@ sub _init {
         );
     $self->{_factory} = $factory;
 
+    if ( @{ $errors->messages() } ) {
+        die $errors;  ## no critic (RequireCarping)
+    }
+
     # Initialize internal storage for Policies
     $self->{_policies} = [];
 
     # "NONE" means don't load any policies
-    if ( not defined $profile_source or $profile_source ne 'NONE' ) {
-        # Heavy lifting here...
-        $self->_load_policies($errors);
-    }
+    return $self if defined $profile_source and $profile_source eq 'NONE';
 
-    if ( $errors->has_exceptions() ) {
-        $errors->rethrow();
-    }
+    # Heavy lifting here...
+    $self->_load_policies();
 
     return $self;
 }
@@ -130,11 +123,8 @@ sub add_policy {
 
     my ( $self, %args ) = @_;
 
-    if ( not $args{-policy} ) {
-        throw_internal q{The -policy argument is required};
-    }
-
-    my $policy  = $args{-policy};
+    my $policy  = $args{-policy}
+        or confess q{The -policy argument is required};
 
     # If the -policy is already a blessed object, then just add it directly.
     if ( blessed $policy ) {
@@ -159,10 +149,9 @@ sub add_policy {
 sub _add_policy_if_enabled {
     my ( $self, $policy_object ) = @_;
 
-    my $parameters = $policy_object->get_parameters()
-        or throw_internal
-            q{Policy was not set up properly because it doesn't have }
-                . q{a value for its parameters attribute.};
+    my $parameters = $policy_object->__get_parameters()
+        or confess q{Policy was not set up properly because it doesn't have }
+                    . q{a value for its parameters attribute.};
 
     if ( $policy_object->initialize_if_enabled( $parameters ) ) {
         push @{ $self->{_policies} }, $policy_object;
@@ -175,11 +164,9 @@ sub _add_policy_if_enabled {
 
 sub _load_policies {
 
-    my ( $self, $errors ) = @_;
+    my ( $self ) = @_;
     my $factory  = $self->{_factory};
-    my @policies = $factory->create_all_policies( $errors );
-
-    return if $errors->has_exceptions();
+    my @policies = $factory->create_all_policies();
 
     for my $policy ( @policies ) {
 
@@ -209,7 +196,7 @@ sub _load_policies {
 
     # When using -single-policy, only one policy should ever be loaded.
     if ($self->single_policy() && scalar $self->policies() != 1) {
-        $self->_add_single_policy_exception_to($errors);
+        $self->_throw_single_policy_exception();
     }
 
     return;
@@ -280,41 +267,24 @@ sub _policy_is_single_policy {
 
 #-----------------------------------------------------------------------------
 
-sub _new_global_value_exception {
-    my ($self, @args) = @_;
+sub _throw_single_policy_exception {
 
-    return
-        Perl::Critic::Exception::Configuration::Option::Global::ParameterValue
-            ->new(@args);
-}
+    my $self = shift;
 
-#-----------------------------------------------------------------------------
-
-sub _add_single_policy_exception_to {
-    my ($self, $errors) = @_;
-
-    my $message_suffix = $EMPTY;
+    my $error_msg = $EMPTY;
     my $patterns = join q{", "}, $self->single_policy();
 
     if (scalar $self->policies() == 0) {
-        $message_suffix =
-            q{did not match any policies (in combination with }
+        $error_msg =
+            qq{No policies matched any of "$patterns" (in combination with }
                 . q{other policy restrictions).};
     }
     else {
-        $message_suffix  = qq{matched multiple policies:\n\t};
-        $message_suffix .= join qq{,\n\t}, apply { chomp } sort $self->policies();
+        $error_msg  = qq{Multiple policies matched "$patterns":\n\t};
+        $error_msg .= join qq{,\n\t}, apply { chomp } sort $self->policies();
     }
 
-    $errors->add_exception(
-        $self->_new_global_value_exception(
-            option_name     => $SINGLE_POLICY_CONFIG_KEY,
-            option_value    => $patterns,
-            message_suffix  => $message_suffix,
-        )
-    );
-
-    return;
+    confess "$error_msg\n";
 }
 
 #-----------------------------------------------------------------------------
@@ -356,13 +326,11 @@ sub _validate_and_save_regex {
             (my $cleaned_error = $EVAL_ERROR) =~
                 s/ [ ] at [ ] .* Config [.] pm [ ] line [ ] \d+ [.] \n? \z/./xms;
 
-            $errors->add_exception(
-                $self->_new_global_value_exception(
-                    option_name     => $option_name,
-                    option_value    => $regex,
-                    source          => $source,
-                    message_suffix  => qq{is not valid: $cleaned_error},
-                )
+            $errors->add_bad_option_message(
+                $option_name,
+                $regex,
+                $source,
+                qq{is not valid: $cleaned_error},
             );
 
             $found_errors = 1;
@@ -401,15 +369,13 @@ sub _validate_and_save_profile_strictness {
     }
 
     if ( not $PROFILE_STRICTNESSES{$profile_strictness} ) {
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $profile_strictness,
-                source          => $source,
-                message_suffix  => q{is not one of "}
-                    . join ( q{", "}, (sort keys %PROFILE_STRICTNESSES) )
-                    . q{".},
-            )
+        $errors->add_bad_option_message(
+            $option_name,
+            $profile_strictness,
+            $source,
+            q{is not one of "}
+                . join ( q{", "}, (sort keys %PROFILE_STRICTNESSES) )
+                . q{".},
         );
 
         $profile_strictness = $PROFILE_STRICTNESS_FATAL;
@@ -441,18 +407,12 @@ sub _validate_and_save_verbosity {
         $verbosity = $profile->defaults()->verbose();
     }
 
-    if (
-            is_integer($verbosity)
-        and not is_valid_numeric_verbosity($verbosity)
-    ) {
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $verbosity,
-                source          => $source,
-                message_suffix  =>
-                    'is not the number of one of the pre-defined verbosity formats.',
-            )
+    if ( is_integer($verbosity) and not is_valid_numeric_verbosity($verbosity) ) {
+        $errors->add_bad_option_message(
+            $option_name,
+            $verbosity,
+            $source,
+            'is not the number of one of the pre-defined verbosity formats.',
         );
     }
     else {
@@ -490,28 +450,22 @@ sub _validate_and_save_severity {
             $self->{_severity} = $severity;
         }
         else {
-            $errors->add_exception(
-                $self->_new_global_value_exception(
-                    option_name     => $option_name,
-                    option_value    => $severity,
-                    source          => $source,
-                    message_suffix  =>
-                        "is not between $SEVERITY_LOWEST (low) and $SEVERITY_HIGHEST (high).",
-                )
+            $errors->add_bad_option_message(
+                $option_name,
+                $severity,
+                $source,
+                "is not between $SEVERITY_LOWEST (low) and $SEVERITY_HIGHEST (high).",
             );
         }
     }
     elsif ( not any { $_ eq lc $severity } @SEVERITY_NAMES ) {
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $severity,
-                source          => $source,
-                message_suffix  =>
-                    q{is not one of the valid severity names: "}
-                        . join (q{", "}, @SEVERITY_NAMES)
-                        . q{".},
-            )
+        $errors->add_bad_option_message(
+            $option_name,
+            $severity,
+            $source,
+            q{is not one of the valid severity names: "}
+                . join (q{", "}, @SEVERITY_NAMES)
+                . q{".},
         );
     }
     else {
@@ -546,13 +500,11 @@ sub _validate_and_save_top {
         $self->{_top} = $top;
     }
     else {
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $top,
-                source          => $source,
-                message_suffix  => q{is not a non-negative integer.},
-            )
+        $errors->add_bad_option_message(
+            $option_name,
+            $top,
+            $source,
+            q{is not a non-negative integer.},
         );
     }
 
@@ -583,14 +535,11 @@ sub _validate_and_save_theme {
     if ( $theme_rule =~ m/$RULE_INVALID_CHARACTER_REGEX/xms ) {
         my $bad_character = $1;
 
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $theme_rule,
-                source          => $source,
-                message_suffix  =>
-                    qq{contains an illegal character ("$bad_character").},
-            )
+        $errors->add_bad_option_message(
+            $option_name,
+            $theme_rule,
+            $source,
+            qq{contains an illegal character ("$bad_character").},
         );
     }
     else {
@@ -602,22 +551,15 @@ sub _validate_and_save_theme {
         eval $rule_as_code;  ## no critic (ProhibitStringyEval)
 
         if ($EVAL_ERROR) {
-            $errors->add_exception(
-                $self->_new_global_value_exception(
-                    option_name     => $option_name,
-                    option_value    => $theme_rule,
-                    source          => $source,
-                    message_suffix  => q{is not syntactically valid.},
-                )
+            $errors->add_bad_option_message(
+                $option_name,
+                $theme_rule,
+                $source,
+                q{is not syntactically valid.},
             );
         }
         else {
-            eval {
-                $self->{_theme} =
-                    Perl::Critic::Theme->new( -rule => $theme_rule );
-            };
-
-            $errors->add_exception_or_rethrow( $EVAL_ERROR );
+            $self->{_theme} = Perl::Critic::Theme->new( -rule => $theme_rule );
         }
     }
 

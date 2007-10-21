@@ -15,7 +15,7 @@ use English qw(-no_match_vars);
 use Perl::Critic::Utils qw{ :booleans :characters :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -24,16 +24,7 @@ Readonly::Scalar my $EXPL => [ 33 ];
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'perltidyrc',
-            description     => 'The Perl::Tidy configuration file to use, if any.',
-            default_string  => undef,
-        },
-    );
-}
-
+sub supported_parameters { return qw( perltidyrc )      }
 sub default_severity { return $SEVERITY_LOWEST      }
 sub default_themes   { return qw(core pbp cosmetic) }
 sub applies_to       { return 'PPI::Document'       }
@@ -43,11 +34,15 @@ sub applies_to       { return 'PPI::Document'       }
 sub initialize_if_enabled {
     my ($self, $config) = @_;
 
+    # workaround for Test::Without::Module v0.11
+    local $EVAL_ERROR = undef;
+
     # If Perl::Tidy is missing, bow out.
     eval { require Perl::Tidy; };
     return $FALSE if $EVAL_ERROR;
 
     #Set configuration if defined
+    $self->{_perltidyrc} = $config->{perltidyrc};
     if (defined $self->{_perltidyrc} && $self->{_perltidyrc} eq $EMPTY) {
         $self->{_perltidyrc} = \$EMPTY;
     }
@@ -74,9 +69,10 @@ sub violates {
     $source =~ s{ \s+ \Z}{\n}mx;
 
     # Remove the shell fix code from the top of program, if applicable
-    my $shebang_re = qr/\#![^\015\012]+[\015\012]+/xms;
-    my $shell_re   = qr/eval [ ] 'exec [ ] [^\015\012]* [ ] \$0 [ ] \${1\+"\$@"}'
-                        [ \t]*[\012\015]+ [ \t]*if[^\015\012]+[\015\012]+/xms;
+    ## no critic(ProhibitComplexRegexes)
+    my $shebang_re = qr{[#]![^\015\012]+[\015\012]+}xms;
+    my $shell_re   = qr{eval [ ] 'exec [ ] [^\015\012]* [ ] \$0 [ ] \${1[+]"\$@"}'
+                        [ \t]*[\012\015]+ [ \t]*if[^\015\012]+[\015\012]+}xms;
     $source =~ s/\A ($shebang_re) $shell_re /$1/xms;
 
     my $dest    = $EMPTY;

@@ -5,9 +5,9 @@
 #     $Date$
 #   $Author$
 # $Revision$
+#        ex: set ts=8 sts=4 sw=4 tw=78 ft=perl expandtab :
 ##############################################################################
 
-## no critic (ErrorHandling::RequireUseOfExceptions)
 package main;
 
 use strict;
@@ -15,19 +15,21 @@ use warnings;
 use English qw(-no_match_vars);
 use Readonly;
 
+use Carp qw(confess);
+
 use Getopt::Long qw(GetOptions);
 use List::Util qw(first);
 use Pod::Usage qw(pod2usage);
 
 use Perl::Critic::Utils qw(
-    :characters :severities &policy_short_name
+    :characters :severities policy_short_name
     $DEFAULT_VERBOSITY $DEFAULT_VERBOSITY_WITH_FILE_NAME
 );
 use Perl::Critic::Violation qw();
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 Readonly::Scalar my $DEFAULT_VIOLATIONS_FOR_TOP => 20;
 
@@ -123,7 +125,7 @@ sub _validate_options {
         $msg .= qq{Warning: Cannot use -noprofile with -profile option.\n};
     }
 
-    if ( $opts{verbose} && $opts{verbose} !~ m{(?: \d+ | %[mfFlcedrps] )}mx) {
+    if ( $opts{verbose} && $opts{verbose} !~ m{(?: \d+ | %[mfFlcedrpPs] )}mx) {
         $msg .= qq{Warning: -verbose arg "$opts{verbose}" looks odd.  };
         $msg .= qq{Perhaps you meant to say "-verbose 3 $opts{verbose}"\n};
     }
@@ -171,7 +173,7 @@ sub get_input {
             $code_string = q{};
         }
 
-        $code_string =~ m{ \S+ }mx || die qq{Nothing to critique.\n};
+        $code_string =~ m{ \S+ }mx || confess qq{Nothing to critique.\n};
         return \$code_string;    #Convert to SCALAR ref for PPI
     }
     else {
@@ -221,13 +223,8 @@ sub critique {
             }
         };
 
-        # P::C::Exception::Fatal includes the stack trace in its
-        # stringification.
-
-        ## no critic (RequireCarping)
-        die qq{Fatal error while critiquing "$file": $EVAL_ERROR}
+        confess qq{Fatal error while critiquing "$file": $EVAL_ERROR}
             if $EVAL_ERROR;
-        ## use critic
     }
 
     if ( $opts_ref->{-statistics} or $opts_ref->{'-statistics-only'} ) {
@@ -997,13 +994,6 @@ A simple configuration might look like this:
   #--------------------------------------------------------------
   # For all other Policies, I accept the default severity,
   # so no additional configuration is required for them.
-
-Note that all policies included with the Perl::Critic distribution that have
-integer parameters accept underscores ("_") in their values, as with Perl
-numeric literals.  For example,
-
-  [ValuesAndExpressions::RequireNumberSeparators]
-  min_value = 1_000
 
 For additional configuration examples, see the F<perlcriticrc> file that is
 included in this F<examples> directory of this distribution.

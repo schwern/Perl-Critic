@@ -14,11 +14,11 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $NOISE_RX => qr{\A ["|']  [^ \w () {} [\] <> ]{1,2}  ['|"] \z}x;
+Readonly::Scalar my $NOISE_RX => qr{\A ["|']  [^ \w () {} [\] <> ]{1,2}  ['|"] \z}mx;
 Readonly::Scalar my $DESC     => q{Quotes used with a noisy string};
 Readonly::Scalar my $EXPL     => [ 53 ];
 

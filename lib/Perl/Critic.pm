@@ -10,6 +10,7 @@ package Perl::Critic;
 use strict;
 use warnings;
 use English qw(-no_match_vars);
+use Carp;
 use Readonly;
 
 use base qw(Exporter);
@@ -20,7 +21,6 @@ use Scalar::Util qw(blessed);
 use PPI::Document;
 use PPI::Document::File;
 
-use Perl::Critic::Exception::Fatal::Generic qw{ throw_generic };
 use Perl::Critic::Config;
 use Perl::Critic::Violation;
 use Perl::Critic::Document;
@@ -29,9 +29,9 @@ use Perl::Critic::Utils qw{ :characters };
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
-Readonly::Array our @EXPORT_OK => qw(&critique);
+Readonly::Array our @EXPORT_OK => qw(critique);
 
 #-----------------------------------------------------------------------------
 
@@ -122,7 +122,7 @@ sub _create_perl_critic_document {
         my $errstr   = PPI::Document::errstr();
         my $file     = ref $source_code ? undef : $source_code;
         my $for_file = $file ? qq{ for "$file"} : $EMPTY;
-        throw_generic qq{Warning: Can't parse code: $errstr} . $for_file;
+        croak qq{Warning: Can't parse code: $errstr} . $for_file;
     }
 
     # Pre-index location of each node (for speed)
@@ -196,10 +196,12 @@ sub _critique {
 
           VIOLATION:
             for my $violation ( $policy->violates( $element, $doc ) ) {
-                my $policy_name = ref $policy;
                 my $line = $violation->location()->[0];
-                next VIOLATION if $is_line_disabled->{$line}->{$policy_name};
-                next VIOLATION if $is_line_disabled->{$line}->{ALL};
+                if (exists $is_line_disabled->{$line}) {
+                    my $policy_name = ref $policy;
+                    next VIOLATION if $is_line_disabled->{$line}->{$policy_name};
+                    next VIOLATION if $is_line_disabled->{$line}->{ALL};
+                }
                 push @violations, $violation;
             }
         }
@@ -213,10 +215,38 @@ sub _critique {
 sub _filter_code {
 
     my ($doc, @site_policies)= @_;
+
     my $nodes_ref  = $doc->find('PPI::Token::Comment') || return;
-    my $no_critic  = qr{\A \s* \#\# \s* no  \s+ critic}mx;
-    my $use_critic = qr{\A \s* \#\# \s* use \s+ critic}mx;
     my %disabled_lines;
+
+    _filter_shebang_line($nodes_ref, \%disabled_lines, \@site_policies);
+    _filter_other_lines($nodes_ref, \%disabled_lines, \@site_policies);
+    return %disabled_lines;
+}
+
+sub _filter_shebang_line {
+    my ($nodes_ref, $disabled_lines, $site_policies) = @_;
+
+    my $shebang_no_critic  = qr{\A [#]! .*? [#][#] \s* no  \s+ critic}mx;
+
+    # Special case for the very beginning of the file: allow "##no critic" after the shebang
+    if (0 < @{$nodes_ref}) {
+        my $loc = $nodes_ref->[0]->location;
+        if (1 == $loc->[0] && 1 == $loc->[1] && $nodes_ref->[0] =~ $shebang_no_critic) {
+            my $pragma = shift @{$nodes_ref};
+            for my $policy (_parse_nocritic_import($pragma, $site_policies)) {
+                $disabled_lines->{ 1 }->{$policy} = 1;
+            }
+        }
+    }
+    return;
+}
+
+sub _filter_other_lines {
+    my ($nodes_ref, $disabled_lines, $site_policies) = @_;
+
+    my $no_critic  = qr{\A \s* [#][#] \s* no  \s+ critic}mx;
+    my $use_critic = qr{\A \s* [#][#] \s* use \s+ critic}mx;
 
   PRAGMA:
     for my $pragma ( grep { $_ =~ $no_critic } @{$nodes_ref} ) {
@@ -224,7 +254,7 @@ sub _filter_code {
         # Parse out the list of Policy names after the
         # 'no critic' pragma.  I'm thinking of this just
         # like a an C<import> argument for real pragmas.
-        my @no_policies = _parse_nocritic_import($pragma, @site_policies);
+        my @no_policies = _parse_nocritic_import($pragma, $site_policies);
 
         # Grab surrounding nodes to determine the context.
         # This determines whether the pragma applies to
@@ -238,7 +268,7 @@ sub _filter_code {
         if ( $sib && $sib->location->[0] == $pragma->location->[0] ) {
             my $line = $pragma->location->[0];
             for my $policy ( @no_policies ) {
-                $disabled_lines{ $line }->{$policy} = 1;
+                $disabled_lines->{ $line }->{$policy} = 1;
             }
             next PRAGMA;
         }
@@ -251,7 +281,7 @@ sub _filter_code {
                 if ( $parent->location->[0] == $pragma->location->[0] ) {
                     my $line = $grandparent->location->[0];
                     for my $policy ( @no_policies ) {
-                        $disabled_lines{ $line }->{$policy} = 1;
+                        $disabled_lines->{ $line }->{$policy} = 1;
                     }
                     next PRAGMA;
                 }
@@ -279,25 +309,25 @@ sub _filter_code {
         # Flag all intervening lines
         for my $line ( $start->location->[0] .. $end->location->[0] ) {
             for my $policy ( @no_policies ) {
-                $disabled_lines{ $line }->{$policy} = 1;
+                $disabled_lines->{ $line }->{$policy} = 1;
             }
         }
     }
 
-    return %disabled_lines;
+    return;
 }
 
 #-----------------------------------------------------------------------------
 
 sub _parse_nocritic_import {
 
-    my ($pragma, @site_policies) = @_;
+    my ($pragma, $site_policies) = @_;
 
     my $module    = qr{ [\w:]+ }mx;
     my $delim     = qr{ \s* [,\s] \s* }mx;
     my $qw        = qr{ (?: qw )? }mx;
-    my $qualifier = qr{ $qw \(? \s* ( $module (?: $delim $module)* ) \s* \)? }mx;
-    my $no_critic = qr{ \A \s* \#\# \s* no \s+ critic \s* $qualifier }mx;
+    my $qualifier = qr{ $qw [(]? \s* ( $module (?: $delim $module)* ) \s* [)]? }mx;
+    my $no_critic = qr{ \#\# \s* no \s+ critic \s* $qualifier }mx;  ##no critic(EscapedMetacharacters)
 
     if ( my ($module_list) = $pragma =~ $no_critic ) {
         my @modules = split $delim, $module_list;
@@ -306,7 +336,7 @@ sub _parse_nocritic_import {
         # in a no-capturing group to permit "|" in the modules specification
         # (backward compatibility)
         my $re = join q{|}, map {"(?:$_)"} @modules;
-        return grep {m/$re/imx} @site_policies;
+        return grep {m/$re/imx} @{$site_policies};
     }
 
     # Default to disabling ALL policies.
@@ -330,7 +360,7 @@ sub _unfix_shebang {
     # fixing strings.  This matches most of the ones I've found in my own Perl
     # distribution, but it may not be bullet-proof.
 
-    my $fixin_rx = qr{^eval 'exec .* \$0 \${1\+"\$@"}'\s*[\r\n]\s*if.+;};
+    my $fixin_rx = qr{^eval 'exec .* \$0 \${1\+"\$@"}'\s*[\r\n]\s*if.+;}m;  ##no critic(RequireExtendedFormatting)
     if ( $first_stmnt =~ $fixin_rx ) {
         my $line = $first_stmnt->location()->[0];
         return ( $line => {ALL => 1}, $line + 1 => {ALL => 1} );
@@ -541,7 +571,7 @@ See L<"BENDING THE RULES"> for more information.  You can set the default
 value for this option in your F<.perlcriticrc> file.
 
 B<-verbose> can be a positive integer (from 1 to 11), or a literal format
-specification.  See L<Perl::Critic::Violations> for an explanation of format
+specification.  See L<Perl::Critic::Violation> for an explanation of format
 specifications.  You can set the default value for this option in your
 F<.perlcriticrc> file.
 

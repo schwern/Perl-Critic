@@ -12,18 +12,18 @@ use warnings;
 
 use Readonly;
 
-use Perl::Critic::Utils qw{ &hashify &is_hash_key };
+use Perl::Critic::Utils qw{ :data_conversion :classification };
 
 use base 'Exporter';
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Array our @EXPORT_OK =>
-  qw( &calculate_mccabe_of_sub &calculate_mccabe_of_main );
+  qw( calculate_mccabe_of_sub calculate_mccabe_of_main );
 
 #-----------------------------------------------------------------------------
 

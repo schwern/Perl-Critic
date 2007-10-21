@@ -10,12 +10,12 @@ Perl::Critic::TODO - Things for Perl::Critic developers to do
 
 =head1 SOURCE
 
-  #######################################################################
-  #      $URL$
-  #     $Date$
-  #   $Author$
-  # $Revision$
-  #######################################################################
+    #######################################################################
+    #      $URL$
+    #     $Date$
+    #   $Author$
+    # $Revision$
+    #######################################################################
 
 =head1 SEE ALSO
 
@@ -32,6 +32,22 @@ policies.  It contains its own TODO.pod.
 
 Primarily for things like C<RequireUseStrict> and C<ProhibitMagicNumbers>.
 Replace current workaround for C<RequireUseStrict>.
+
+=item * Add --prohibit-unrestricted-no-critic option to F<perlcritic>.
+
+Requires C<## no critic> to take an argument:
+
+  ## no critic (SomePolicyPattern)     # ok
+  ## no critic                         # not ok
+
+Can't be done as a Policy because any line that violated it would disable it.
+
+=item * Support for C<#line 123 "filename"> directives.
+
+For code generators and template languages that allow inline Perl code.
+
+Yes, somebody has an in-house templating system where they've written a custom
+test module that extracts the perl code from a template and critiques it.
 
 =back
 
@@ -90,71 +106,22 @@ policy.
 
 These policies should not report violations if 'use Fatal' is in effect.
 
+=item * TestingAndDebugging::RequireUseWarnings
+
+Check for -w on the shbang line.
+
 =back
 
 =head1 OTHER PBP POLICIES THAT SEEM FEASIBLE TO IMPLEMENT
 
-Chris Dolan is in the process of implementing the ideas below (but don't let
-that stop you from contributing!!!).  That work is supported by a Perl
-Foundation grant.  More details about the grant:
-L<http://www.perlfoundation.org/april_1_2007_new_grant_awards>
-
-=over 4
-
-=item * InputOutput::RequireChecked* for system calls (p208)
-
-Add policies to ensure checking the return values of system calls.  See
-InputOutput::RequireCheckedOpen and InputOutput::RequireCheckedClose.  Needs
-to take into account the Fatal and Fatal::Exception modules.
-
-=item * InputOutput::RequireBriefOpen (p209)
-
-Make sure there's a close within N statements of an open, both with
-same lexical FH
-
-=item * InputOutput::ProhibitExplicitStdin (p216)
-
-If you're reading from STDIN, chances are you're really wanting to
-read from the magic filehandle.
-
-=item * RegularExpressions::RequireBracesForMultiline (p242)
-
-=item * RegularExpressions::ProhibitUnusualDelimiters (p246)
-
-=item * RegularExpressions::ProhibitEscapedMetacharacters (p247)
-
-=item * RegularExpressions::ProhibitEnumeratedClasses (p248)
-
-This will be avoided for ASCII-only code.
-
-=item * RegularExpressions::ProhibitUnusedCapture (p252)
-
-Look for LHS of regexp or use of C<$1>, C<$2>, ... before next
-regexp.
-
-=item * RegularExpressions::ProhibitComplexRegexes (p261)
-
-If regexp is longer than N characters/lines, require it be split
-into C<qr//> pieces.
-
-Even if the x modifier is used and the regex is split across
-multiple lines?
-
-=item * RegularExpressions::ProhibitSingleCharAlternation (p265)
-
-Not sure if this is easy or hard.  Need to look at what PPI emits
-for regexps.  Make an exception for qr/ [ ] /x.
-
-=item * RegularExpressions::ProhibitFixedStringMatches (p271)
-
-Can't be C<qr/\s*\\A\s*\((?:\?:)?(?:\s*\w+\s*\|)*\s*\w+\s*\)\s*\\z/>
-or C<qr/\s*\\A\s*\w+\s*\\z/>
-
-=back
+All the ones we formerly listed here are now done.  Feel free to thumb through
+PBP and add more here.
 
 =head1 NON-PBP POLICIES WANTED
 
 =over 4
+
+=item * ErrorHandling::RequireCheckOfEvalErrorAfterEval
 
 =item * TBD::VariableNotUsed
 
@@ -224,6 +191,19 @@ L<http://rt.cpan.org/Ticket/Display.html?id=20439>
 
 These are simplified versions of Documentation::RequirePodSections.
 
+=item * Documentation::RequireValidSynopsis
+
+The Synopsis section must be all indented and must be syntactically valid Perl
+(as validated by PPI).
+
+=item * Documentation::ProhibitEmptySections
+
+Any C<=headN> and C<=over> sections must not be empty.  This helps catch
+boilerplate (althought Test::Pod should catch empty C<=over> blocks).
+
+On the other hand, C<=item ...> sections can be empty, since the item label is
+content.
+
 =item * Miscellaneous::ProhibitBoilerplate
 
 Complain about copy-and-paste code or docs from h2xs, Module::Starter::*,
@@ -236,22 +216,57 @@ L<http://search.cpan.org/src/JJORE/Carp-Clan-5.8/t/04boilerplate.t>
 
 Recommend that C<if (scalar @array)> be rewritten as C<if (@array)>.
 
+=item * RegularExpressions::ProhibitMixedDelimiters
+
+Ban s{foo}(bar)
+
+=item * RegularExpressions::ProhibitScalarAsRegexp
+
+Ban naked srtings as regexps, like:
+
+    print 1 if $str =~ $regexp;
+
+Instead, it should be:
+
+    print 1 if $str =~ m/$regexp/;
+
+or
+
+    print 1 if $str =~ m/$regexp/xms;
+
+
+=item * ValuesAndExpressions::RequireInterpolatedStringyEval
+
+Ensure that the argument to a stringy eval is not a constant string.  That's
+just wasteful.  Real world examples include:
+
+  eval 'use Optional::Module';
+
+which is better written as
+
+  eval { require Optional::Module; Optional::Module->import };
+
+for performance gains and compile-time syntax checking.
+
+=item * RegularExpressions::ProhibitUnnecessaryEscapes
+
+Complain if user puts a backslash escape in front of non-special characters.  For example:
+
+   m/\!/;
+
+Make exceptions for C<\">, C<\'> and C<\`> since those are often inserted to
+workaround bugs in syntax highlighting.
+
+Note that this is different inside character classes, where only C<^>, C<]>
+and C<-> need to be escaped, I think.  Caret only needs to be escaped at the
+beginning, and dash does NOT need to be escaped at the beginning and end.  See
+L<perlreref>.
+
 =back
 
 =head1 REFACTORINGS and ENHANCEMENTS
 
 =over 4
-
-=item * Make parameter declarations at compile time instead of at run time.
-
-=item * Have the Policy import() inject accessors for parameters into subclasses.
-
-=item * Restore tri-state-edness to Behavior::Boolean.
-
-=item * Move package globals, e.g. P::C::Violation::FORMAT, to instance variables on Perl::Critic.
-
-This applies regardless of whether the variable was declared with C<my> or
-C<our>.
 
 =item * Create constants for the PPI location array elements.
 
@@ -326,14 +341,6 @@ We're waiting on the following bugs to get fixed in a CPAN release of PPI:
 
 =over 4
 
-=item literal()
-
-ValuesAndExpressions::RequireNumberSeparators uses a stringy eval to
-numify.  Current PPI SVN has code for the
-PPI::Token::Number->literal() method which numifies from source.  When
-we depend on a PPI version higher than 1.118, the _to_number()
-function in that policy can be removed in favor of literal().
-
 =item Newlines
 
 PPI does not preserve newlines.  That makes
@@ -342,49 +349,19 @@ now, it's implemented by pulling the source out of the file and skipping PPI.
 
 It's unlikely that PPI will support mixde newlines anytime soon.
 
-=item Anonymous constructors in lists
-
-The following parses wrong in PPI v1.118.  A PPI fix is in progress.
-
-  bless( {} );
-
-When this is fixed, uncomment a few tests in t/20_policies_classhierarchies.t
-
-=item Hash constructors with a parenthesis directly to the left.
-
-The L<PPI::Statement> surrounding the L<PPI::Constructor> returns undef
-for C<location()> for the following:
-
-  ({})
-
-The same problem exists for
-
-  ({} )
-
-but not for
-
-  ( {})
-
-Logged as RT #23788.
-
-Remove trinary operator usage in RequireUseStrict, RequireUseWarnings, and
-RequireExplicitPackage once this is fixed.
-
-=item L<PPI::Structure::Block>s being generated instead of L<PPI::Structure::Constructor>
-
-For complicated data structures, C<< { blah => blah } >> will result in a
-L<PPI::Structure::Block> being created, instead of a
-L<PPI::Structure::Constructor>.
-
-ValuesAndExpressions::ProhibitCommaSeparatedStatements and other policies have
-workarounds for this.
-
 =item Operators
 
 ValuesAndExpressions::ProhibitMismatchedOperators has two workarounds
 for PPI bugs with parsing operators.  Many of these bugs have been
 fixed in PPI, so it would be good to check if those workarounds are
 still needed.
+
+=item Regexp methods
+
+Not strictly a bug -- the PPI Regexp classes have a dearth of accessor methods
+as of v1.118, meaning that we have to do messy digging into internals.  I
+wrote Perl::Critic:Utils::PPIRegexp to encapsulate this messiness, but it
+would be nicer to have an official interface in PPI.
 
 =back
 

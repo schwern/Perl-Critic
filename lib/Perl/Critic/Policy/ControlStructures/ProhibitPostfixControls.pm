@@ -11,20 +11,22 @@ use strict;
 use warnings;
 use Readonly;
 
-use Perl::Critic::Utils qw{ :characters :severities :data_conversion :classification };
+use Perl::Critic::Utils qw{
+    :booleans :characters :severities :data_conversion :classification
+};
+
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Hash my %PAGES_OF => (
-    if      => [ 93, 94 ],
-    unless  => [ 96, 97 ],
-    until   => [ 96, 97 ],
-    for     => [ 96     ],
-    foreach => [ 96     ],
-    while   => [ 96     ],
+    if     => [ 93, 94 ],
+    unless => [ 96, 97 ],
+    until  => [ 96, 97 ],
+    for    => [ 96     ],
+    while  => [ 96     ],
 );
 
 Readonly::Array my @EXEMPTIONS => qw( warn die carp croak cluck confess goto exit );
@@ -32,20 +34,26 @@ Readonly::Hash my %EXEMPTIONS => hashify( @EXEMPTIONS );
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name               => 'allow',
-            description        => 'The permitted postfix controls.',
-            default_string     => $EMPTY,
-            behavior           => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw( allow )           }
 sub default_severity { return $SEVERITY_LOW         }
 sub default_themes   { return qw(core pbp cosmetic) }
 sub applies_to       { return 'PPI::Token::Word'    }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    $self->{_allow} = {};
+
+    #Set config, if defined
+    if ( defined $config->{allow} ) {
+        my %allowed = hashify( words_from_string( $config->{allow} ) );
+        $self->{_allow} = \%allowed;
+    }
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 

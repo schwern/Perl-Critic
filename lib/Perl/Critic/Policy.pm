@@ -9,7 +9,7 @@ package Perl::Critic::Policy;
 
 use strict;
 use warnings;
-use English qw{ -no_match_vars };
+use Carp qw(confess);
 
 use String::Format qw(stringf);
 
@@ -20,24 +20,12 @@ use Perl::Critic::Utils qw{
     :booleans
     :severities
     :data_conversion
-    &interpolate
-    &policy_long_name
-    &policy_short_name
-    $POLICY_NAMESPACE
+    interpolate
+    policy_short_name
 };
-use Perl::Critic::Exception::AggregateConfiguration;
-use Perl::Critic::Exception::Configuration;
-use Perl::Critic::Exception::Configuration::Option::Policy::ExtraParameter;
-use Perl::Critic::Exception::Configuration::Option::Policy::ParameterValue;
-use Perl::Critic::Exception::Fatal::PolicyDefinition
-    qw{ &throw_policy_definition };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
-use Perl::Critic::PolicyParameter qw();
 use Perl::Critic::Violation qw();
 
-use Exception::Class;   # this must come after "use P::C::Exception::*"
-
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -45,142 +33,32 @@ my $FORMAT = "%p\n"; #Default stringy format
 
 #-----------------------------------------------------------------------------
 
-sub parameter($$) {
-    throw_policy_definition 'parameter() invoked in a non-void context.'
-        if defined wantarray;
-
-    my ( $name, $specification ) = @_;
-
-    throw_policy_definition
-            qq{"$name" is not a parameter name (i.e. a string).}
-        if ref $name;
-    throw_policy_definition
-            qq{"$specification" is not a reference to a hash containing }
-            . q{Policy parameter attributes.}
-        if 'HASH' ne ref $specification;
-
-    print "parameter: $name\n";
-    print "specified: $_ => $specification->{$_}\n" foreach sort keys %{$specification};
+sub new {
+    my $class = shift;
+    return bless {}, $class;
 }
 
 #-----------------------------------------------------------------------------
 
-sub import {
-    my $class = caller;
+# Reference to a hash.
+sub __get_parameters {
+    my ($self) = @_;
 
-    print "class: $class\n";
-    if ($class !~ m/ \A $POLICY_NAMESPACE :: /xmso) {
-        return;
-    }
+    return $self->{_parameters};
+}
 
-    {
-        no strict 'refs';
+sub __set_parameters {
+    my ($self, $parameters) = @_;
 
-        unshift @{$class . '::ISA'}, __PACKAGE__;
-        *{$class . '::parameter'} = \&parameter;
-    }
+    $self->{_parameters} = $parameters;
 
     return;
-}
-
-#-----------------------------------------------------------------------------
-
-sub new {
-    my ($class, %config) = @_;
-
-    my $self = bless {}, $class;
-
-    my @parameters;
-    my $parameter_metadata_available = 0;
-
-    if ( $class->can('supported_parameters') ) {
-        $parameter_metadata_available = 1;
-        @parameters =
-            map
-                { Perl::Critic::PolicyParameter->new($_) }
-                $class->supported_parameters();
-    }
-    $self->{_parameter_metadata_available} = $parameter_metadata_available;
-    $self->{_parameters} = \@parameters;
-
-    my $errors = Perl::Critic::Exception::AggregateConfiguration->new();
-    foreach my $parameter ( @parameters ) {
-        eval {
-            $parameter->parse_and_validate_config_value( $self, \%config );
-        };
-
-        $errors->add_exception_or_rethrow($EVAL_ERROR);
-
-        delete $config{ $parameter->get_name() };
-    }
-
-    if ($parameter_metadata_available) {
-        $self->_validate_config_keys($errors, \%config);
-    }
-
-    if ( $errors->has_exceptions() ) {
-        $errors->rethrow();
-    }
-
-    return $self;
 }
 
 #-----------------------------------------------------------------------------
 
 sub initialize_if_enabled {
     return $TRUE;
-}
-
-#-----------------------------------------------------------------------------
-
-sub _validate_config_keys {
-    my ( $self, $errors, $config ) = @_;
-
-    for my $offered_param ( keys %{ $config } ) {
-        $errors->add_exception(
-            Perl::Critic::Exception::Configuration::Option::Policy::ExtraParameter->new(
-                policy          => $self->get_short_name(),
-                option_name     => $offered_param,
-                source          => undef,
-            )
-        );
-    }
-
-    return;
-}
-
-#-----------------------------------------------------------------------------
-
-sub __get_parameter_name {
-    my ( $self, $parameter ) = @_;
-
-    return '_' . $parameter->get_name();
-}
-
-#-----------------------------------------------------------------------------
-
-sub __set_parameter_value {
-    my ( $self, $parameter, $value ) = @_;
-
-    $self->{ $self->__get_parameter_name($parameter) } = $value;
-
-    return;
-}
-
-#-----------------------------------------------------------------------------
-
-sub get_long_name {
-    my ($self) = @_;
-
-    return policy_long_name(ref $self);
-}
-
-#-----------------------------------------------------------------------------
-
-sub get_short_name {
-    my ($self) = @_;
-
-    return policy_short_name(ref $self);
 }
 
 #-----------------------------------------------------------------------------
@@ -244,27 +122,8 @@ sub default_themes {
 
 #-----------------------------------------------------------------------------
 
-sub parameter_metadata_available {
-    my ($self) = @_;
-
-    return $self->{_parameter_metadata_available};
-}
-
-#-----------------------------------------------------------------------------
-
-sub get_parameters {
-    my ($self) = @_;
-
-    return $self->{_parameters};
-}
-
-#-----------------------------------------------------------------------------
-
 sub violates {
-    my ($self) = @_;
-
-    return throw_policy_definition
-        $self->get_short_name() . q{ does not implement violates().};
+    return confess q{Can't call abstract method};
 }
 
 #-----------------------------------------------------------------------------
@@ -277,25 +136,8 @@ sub violation {  ##no critic(ArgUnpacking)
     goto &Perl::Critic::Violation::new;
 }
 
-#-----------------------------------------------------------------------------
-
-## no critic (Subroutines::RequireFinalReturn)
-sub throw_parameter_value_exception {
-    my ( $self, $option_name, $option_value, $source, $message_suffix ) = @_;
-
-    Perl::Critic::Exception::Configuration::Option::Policy::ParameterValue->throw(
-        policy          => $self->get_short_name(),
-        option_name     => $option_name,
-        option_value    => $option_value,
-        source          => $source,
-        message_suffix  => $message_suffix
-    );
-}
-## use critic
-
 
 #-----------------------------------------------------------------------------
-
 # Static methods.
 
 sub set_format { return $FORMAT = $_[0] }  ##no critic(ArgUnpacking)
@@ -308,10 +150,9 @@ sub to_string {
 
     # Wrap the more expensive ones in sub{} to postpone evaluation
     my %fspec = (
-         'O' => sub { $self->_format_parameters(@_) },
-         'U' => sub { $self->_format_lack_of_parameter_metadata(@_) },
-         'P' => sub { $self->get_long_name() },
-         'p' => sub { $self->get_short_name() },
+         'O' => sub { $self->_format_supported_parameters(@_) },
+         'P' => ref $self,
+         'p' => sub { policy_short_name( ref $self ) },
          'T' => sub { join $SPACE, $self->default_themes() },
          't' => sub { join $SPACE, $self->get_themes() },
          'S' => sub { $self->default_severity() },
@@ -320,33 +161,13 @@ sub to_string {
     return stringf($FORMAT, %fspec);
 }
 
-sub _format_parameters {
+sub _format_supported_parameters {
     my ($self, $format) = @_;
-
-    return $EMPTY if not $self->parameter_metadata_available();
-
-    my $separator;
-    if ($format) {
-        $separator = $EMPTY;
-    } else {
-        $separator = $SPACE;
-        $format = '%n';
-    }
-
-    return
-        join
-            $separator,
-            map { $_->to_formatted_string($format) } @{ $self->get_parameters() };
-}
-
-sub _format_lack_of_parameter_metadata {
-    my ($self, $message) = @_;
-
-    return $EMPTY if $self->parameter_metadata_available();
-    return interpolate($message) if $message;
-
-    return
-        'Cannot programmatically discover what parameters this policy takes.';
+    return $EMPTY if not $self->can('supported_parameters');
+    $format = Perl::Critic::Utils::interpolate( $format );
+    my @parameter_names = $self->supported_parameters();
+    return join $SPACE, @parameter_names if not $format;
+    return join $EMPTY, map { sprintf $format, $_ } @parameter_names;
 }
 
 
@@ -440,21 +261,6 @@ the violation.
 These are the same as the constructor to L<Perl::Critic::Violation>,
 but without the severity.  The Policy itself knows the severity.
 
-=item C< throw_parameter_value_exception( $option_name, $option_value, $source, $message_suffix ) >
-
-Create and throw a
-L<Perl::Critic::Exception::Configuration::Option::Policy::ParameterValue>.
-Useful in parameter parser implementations.
-
-=item C< get_long_name() >
-
-Return the full package name of this policy.
-
-=item C< get_short_name() >
-
-Return the name of this policy without the "Perl::Critic::Policy::"
-prefix.
-
 =item C< applies_to() >
 
 Returns a list of the names of PPI classes that this Policy cares
@@ -511,34 +317,16 @@ overwritten.  Duplicate themes will be removed.
 Appends additional themes to this Policy.  Any existing themes are
 preserved.  Duplicate themes will be removed.
 
-=item C< parameter_metadata_available() >
-
-Returns whether information about the parameters is available.
-
-=item C< get_parameters() >
-
-Returns a reference to an array containing instances of
-L<Perl::Critic::PolicyParameter>.
-
-Note that this will return an empty list if the parameters for this
-policy are unknown.  In order to differentiate between this
-circumstance and the one where this policy does not take any
-parameters, it is necessary to call C<parameter_metadata_available()>.
-
-=item C< get_parameter( $parameter_name ) >
-
-Returns the L<Perl::Critic::PolicyParameter> with the specified name.
-
 =item C<set_format( $FORMAT )>
 
-Class method.  Sets the format for all Policy objects when they are
-evaluated in string context.  The default is C<"%p\n">.  See
-L<"OVERLOADS"> for formatting options.
+Class method.  Sets the format for all Policy objects when they are evaluated
+in string context.  The default is C<"%p\n">.  See L<"OVERLOADS"> for
+formatting options.
 
 =item C<get_format()>
 
-Class method. Returns the current format for all Policy objects when
-they are evaluated in string context.
+Class method. Returns the current format for all Policy objects when they are
+evaluated in string context.
 
 =item C<to_string()>
 
@@ -570,19 +358,7 @@ capabilities, look at L<String::Format>. Valid escape characters are:
 
 =item C<%O>
 
-List of supported policy parameters.  Takes an option of a format
-string for L<Perl::Critic::PolicyParameter/"to_formatted_string">.
-For example, this can be used like C<%{%n - %d\n}O> to get a list of
-parameter names followed by their descriptions.
-
-=item C<%U>
-
-A message stating that the parameters for the policy are unknown if
-C<parameter_metadata_available()> returns false.  Takes an option of
-what the message should be, which defaults to "Cannot programmatically
-discover what parameters this policy takes.".  The value of this
-option is interpolated in order to expand the standard escape
-sequences (C<\n>, C<\t>, etc.).
+Comma-delimited list of supported policy parameters.
 
 =item C<%P>
 

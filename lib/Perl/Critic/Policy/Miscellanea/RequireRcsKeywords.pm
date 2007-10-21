@@ -16,9 +16,10 @@ use List::MoreUtils qw(none);
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
 };
+
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -26,17 +27,7 @@ Readonly::Scalar my $EXPL => [ 441 ];
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'keywords',
-            description     => 'The keywords to require in all files.',
-            default_string  => $EMPTY,
-            behavior        => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw( keywords )        }
 sub default_severity  { return $SEVERITY_LOW         }
 sub default_themes    { return qw(core pbp cosmetic) }
 sub applies_to        { return 'PPI::Document'       }
@@ -47,7 +38,7 @@ sub initialize_if_enabled {
     my ($self, $config) = @_;
 
     # Any of these lists
-    $self->{_keyword_sets} = [
+    $self->{_keywords} = [
 
         # Minimal svk/svn
         [qw(Id)],
@@ -59,11 +50,10 @@ sub initialize_if_enabled {
         [qw(Revision Source Date)],
     ];
 
-    # Set configuration, if defined.
-    my @keywords = keys %{ $self->{_keywords} };
-    if ( @keywords ) {
+    #Set configuration, if defined.
+    if ( defined $config->{keywords} ) {
         ## no critic ProhibitEmptyQuotes
-        $self->{_keyword_sets} = [ [ @keywords ] ];
+        $self->{_keywords} = [ [ words_from_string( $config->{keywords} ) ] ];
     }
 
     return $TRUE;
@@ -76,7 +66,7 @@ sub violates {
     my @viols = ();
 
     my $nodes = $doc->find( \&_wanted );
-    for my $keywordset_ref ( @{ $self->{_keyword_sets} } ) {
+    for my $keywordset_ref ( @{ $self->{_keywords} } ) {
         if ( not $nodes ) {
             my $desc = 'RCS keywords '
                 . join( ', ', map {"\$$_\$"} @{$keywordset_ref} )
@@ -85,7 +75,7 @@ sub violates {
         }
         else {
             my @missing_keywords = grep {
-                my $keyword_rx = qr/\$$_.*\$/;
+                my $keyword_rx = qr/\$$_.*\$/xms;
                 !!none {
                     /$keyword_rx/    ## no critic
                     }

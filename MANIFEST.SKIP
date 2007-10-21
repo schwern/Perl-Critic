@@ -1,7 +1,10 @@
-^tags$
 ^README\.developer$
 \.PPI$
-RequireLocalizedPunctuationVars\.generator$
+^t/.*_without_optional_dependencies.t$
+^t/ControlStructures/ProhibitNegativeExpressionsInUnlessAndUntilConditions.run$
+^t/Variables/RequireLocalizedPunctuationVars.run$
+
+## Below here are generic entries that apply to any project ##
 
 # Version Control files
 ^\.cvsignore$
@@ -36,11 +39,11 @@ RCS
 \.old$
 ^t/00_local_.*t$
 ^t/perlcriticrc$
-^tools
+tools
 ^tmon\.out$
 \.gdb_history$
 \.ERR$
-^t/.*_without_optional_dependencies.t$
+^tags$
 
 # Temp/backup files
 ~$

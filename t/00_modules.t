@@ -16,30 +16,14 @@ use English qw(-no_match_vars);
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Perl::Critic::TestUtils::block_perlcriticrc();
 
 my @bundled_policy_names = bundled_policy_names();
-
-my @concrete_exceptions = qw{
-    AggregateConfiguration
-    Configuration::Generic
-    Configuration::Option::Global::ExtraParameter
-    Configuration::Option::Global::ParameterValue
-    Configuration::Option::Policy::ExtraParameter
-    Configuration::Option::Policy::ParameterValue
-    Fatal::Generic
-    Fatal::Internal
-    Fatal::PolicyDefinition
-};
-
-plan tests =>
-        106
-    +   (  9 * scalar @concrete_exceptions  )
-    +   ( 14 * scalar @bundled_policy_names );
+plan tests => 113 + 14 * scalar @bundled_policy_names;
 
 # pre-compute for version comparisons
 my $version_string = __PACKAGE__->VERSION;
@@ -83,6 +67,19 @@ can_ok('Perl::Critic::Config', 'site_policy_names');
 my $config = Perl::Critic::Config->new( -profile => 'NONE');
 isa_ok($config, 'Perl::Critic::Config');
 is($config->VERSION(), $version_string, 'Perl::Critic::Config version');
+
+#-----------------------------------------------------------------------------
+# Test Perl::Critic::ConfigErrors module interface
+
+use_ok('Perl::Critic::ConfigErrors');
+can_ok('Perl::Critic::ConfigErrors', 'new');
+can_ok('Perl::Critic::ConfigErrors', 'messages');
+can_ok('Perl::Critic::ConfigErrors', 'add_message');
+can_ok('Perl::Critic::ConfigErrors', 'add_bad_option_message');
+
+my $errors = Perl::Critic::ConfigErrors->new();
+isa_ok($errors, 'Perl::Critic::ConfigErrors');
+is($errors->VERSION(), $version_string, 'Perl::Critic::ConfigErrors version');
 
 #-----------------------------------------------------------------------------
 # Test Perl::Critic::Config::Defaults module interface
@@ -210,44 +207,7 @@ can_ok('Perl::Critic::ProfilePrototype', 'to_string');
 
 my $prototype = Perl::Critic::ProfilePrototype->new();
 isa_ok($prototype, 'Perl::Critic::ProfilePrototype');
-is($prototype->VERSION(), $version_string, 'Perl::Critic::ProfilePrototype version');
-
-#-----------------------------------------------------------------------------
-# Test module interface for exceptions
-
-{
-    foreach my $class (
-        map { "Perl::Critic::Exception::$_" } @concrete_exceptions
-    ) {
-        use_ok($class);
-        can_ok($class, 'new');
-        can_ok($class, 'throw');
-        can_ok($class, 'message');
-        can_ok($class, 'error');
-        can_ok($class, 'full_message');
-        can_ok($class, 'as_string');
-
-        my $exception = $class->new();
-        isa_ok($exception, $class);
-        is($exception->VERSION(), $version_string, "$class version");
-    }
-}
-
-#{
-#    foreach my $class (
-#        qw{
-#            Perl::Critic::Exception::Configuration::Option::Global
-#            Perl::Critic::Exception::Configuration::Option::Policy
-#        }
-#    ) {
-#        can_ok($class, 'option_name');
-#        can_ok($class, 'option_value');
-#        can_ok($class, 'source');
-#        can_ok($class, 'message_suffix');
-#    }
-#
-#    can_ok('Perl::Critic::Exception::Configuration::Policy', 'policy');
-#}
+is($listing->VERSION(), $version_string, 'Perl::Critic::ProfilePrototype version');
 
 #-----------------------------------------------------------------------------
 # Test module interface for each Policy subclass

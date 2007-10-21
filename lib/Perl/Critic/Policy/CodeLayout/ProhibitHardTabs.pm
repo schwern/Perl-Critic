@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :booleans :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -25,20 +25,23 @@ my $DEFAULT_ALLOW_LEADING_TABS = $TRUE;
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name           => 'allow_leading_tabs',
-            description    => 'Allow hard tabs before first non-whitespace character.',
-            default_string => '1',
-            behavior       => 'boolean',
-        },
-    );
-}
-
+sub supported_parameters { return qw( allow_leading_tabs ) }
 sub default_severity { return $SEVERITY_MEDIUM    }
 sub default_themes   { return qw( core cosmetic ) }
 sub applies_to       { return 'PPI::Token'        }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
+
+    #Set config, if defined
+    my $allow_leading_tabs = $config->{allow_leading_tabs};
+    $self->{_allow_leading_tabs} =
+        defined $allow_leading_tabs ? $allow_leading_tabs : $TRUE;
+
+    return $TRUE;
+}
 
 #-----------------------------------------------------------------------------
 
@@ -85,7 +88,7 @@ editor can be configured to expand tabs into spaces.  L<Perl::Tidy>
 also does this for you.
 
 This Policy catches all tabs in your source code, including POD,
-quotes, and HEREDOCs.  The contents of the C<__DATA__> section are not
+quotes, and HEREDOCS.  The contents of the C<__DATA__> section are not
 examined.
 
 =head1 CONFIGURATION

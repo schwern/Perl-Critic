@@ -14,18 +14,17 @@ use Readonly;
 use File::Spec;
 use List::MoreUtils qw(uniq);
 use English qw(-no_match_vars);
+use Carp;
 
 use Perl::Critic::Utils qw{
     :characters
     :booleans
     :severities
-    &words_from_string
+    words_from_string
 };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
-
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -33,33 +32,33 @@ Readonly::Scalar my $POD_RX => qr{\A = (?: for|begin|end ) }mx;
 Readonly::Scalar my $DESC => q{Check the spelling in your POD};
 Readonly::Scalar my $EXPL => [148];
 
+Readonly::Scalar my $DEFAULT_SPELL_COMMAND => 'aspell list';
+
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'spell_command',
-            description     => 'The command to invoke to check spelling.',
-            default_string  => 'aspell list',
-            behavior        => 'string',
-        },
-        {
-            name            => 'stop_words',
-            description     => 'The words to not consider as misspelled.',
-            default_string  => $EMPTY,
-            behavior        => 'string list',
-        },
-    );
-}
-
+sub supported_parameters { return qw(spell_command stop_words) }
 sub default_severity     { return $SEVERITY_LOWEST        }
 sub default_themes       { return qw( core cosmetic pbp ) }
 sub applies_to           { return 'PPI::Document'         }
+
+my $got_sigpipe = 0;
+sub got_sigpipe {
+    return $got_sigpipe;
+}
 
 #-----------------------------------------------------------------------------
 
 sub initialize_if_enabled {
     my ( $self, $config ) = @_;
+
+    #Set configuration if defined
+    $self->_set_spell_command( $config->{spell_command} || $DEFAULT_SPELL_COMMAND );
+    $self->_set_stop_words(
+        [ words_from_string($config->{stop_words} || $EMPTY) ]
+    );
+
+    # workaround for Test::Without::Module v0.11
+    local $EVAL_ERROR = undef;
 
     eval {
         require File::Which;
@@ -85,9 +84,9 @@ sub violates {
     my $infh = IO::String->new( $code );
     my $outfh = IO::String->new( $text );
     my @words;
-    {
+    eval {
        # temporarily add our special wordlist to this annoying global
-       my @stop_words = keys %{ $self->_get_stop_words() };
+       my @stop_words = @{ $self->_get_stop_words() };
        local @Pod::Wordlist::Wordlist{ @stop_words } ##no critic(ProhibitPackageVars)
            = (1) x @stop_words;
        Pod::Spell->new()->parse_from_filehandle($infh, $outfh);
@@ -96,18 +95,18 @@ sub violates {
        return if $text !~ m/\S/xms;
 
        # run spell command and fetch output
+       local $SIG{PIPE} = sub { $got_sigpipe = 1; };
        my $command_line = $self->_get_spell_command_line();
        my $reader_fh;
        my $writer_fh;
+       ## TODO: block STDERR.  Use open3?
        my $pid = IPC::Open2::open2($reader_fh, $writer_fh, @{$command_line});
-       return if ! $pid;
+       return if not $pid;
 
-       print {$writer_fh} $text;
-       close $writer_fh
-           or throw_internal 'Failed to close pipe to spelling program';
+       print {$writer_fh} $text or croak 'Failed to send data to spelling program';
+       close $writer_fh or croak 'Failed to close pipe to spelling program';
        @words = uniq <$reader_fh>;
-       close $reader_fh
-           or throw_internal 'Failed to close pipe to spelling program';
+       close $reader_fh or croak 'Failed to close pipe to spelling program';
        waitpid $pid, 0;
 
        for (@words) {
@@ -115,8 +114,8 @@ sub violates {
        }
 
        # Why is this extra step needed???
-       @words = grep { ! exists $Pod::Wordlist::Wordlist{$_} } @words;  ##no critic(ProhibitPackageVars)
-    }
+       @words = grep { not exists $Pod::Wordlist::Wordlist{$_} } @words;  ##no critic(ProhibitPackageVars)
+    };
     return if !@words;
 
     return $self->violation( "$DESC: @words", $EXPL, $doc );
@@ -242,8 +241,8 @@ set a global list of spelling exceptions.  To do this, put entries in
 a F<.perlcriticrc> file like this:
 
   [Documentation::PodSpelling]
-  spellcommand = aspell list
-  stopwords = gibbles foobar
+  spell_command = aspell list
+  stop_words = gibbles foobar
 
 The default spell command is C<aspell list> and it is interpreted as a
 shell command.  We parse the individual arguments via

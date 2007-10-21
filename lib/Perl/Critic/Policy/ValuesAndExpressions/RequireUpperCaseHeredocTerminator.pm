@@ -14,11 +14,11 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $HEREDOC_RX => qr{ \A << \s* ["|']? [A-Z_] [A-Z0-9_]* ['|"]? \z }x;
+Readonly::Scalar my $HEREDOC_RX => qr{ \A << \s* (["|']?) [\p{Uppercase}_] [\p{Uppercase}\d_]* \1 \z }mx;
 Readonly::Scalar my $DESC       => q{Heredoc terminator not alphanumeric and upper-case};
 Readonly::Scalar my $EXPL       => [ 64 ];
 

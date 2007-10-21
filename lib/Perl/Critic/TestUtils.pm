@@ -11,6 +11,7 @@ use strict;
 use warnings;
 use English qw(-no_match_vars);
 use Readonly;
+use Carp qw( confess );
 
 use base 'Exporter';
 
@@ -22,18 +23,17 @@ use File::Find qw( find );
 
 use Perl::Critic;
 use Perl::Critic::Config;
-use Perl::Critic::Exception::Fatal::Generic qw{ &throw_generic };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
-use Perl::Critic::Utils qw{ :severities :data_conversion &policy_long_name };
+use Perl::Critic::Utils qw{ :severities :data_conversion policy_long_name };
 use Perl::Critic::PolicyFactory (-test => 1);
 
-our $VERSION = 1.072;
-
+our $VERSION = '1.079_001';
 Readonly::Array our @EXPORT_OK => qw(
     pcritique pcritique_with_violations
     critique  critique_with_violations
     fcritique fcritique_with_violations
     subtests_in_tree
+    should_skip_author_tests
+    get_author_test_skip_message
     starting_points_including_examples
     bundled_policy_names
     names_of_policies_willing_to_work
@@ -106,16 +106,15 @@ sub fcritique_with_violations {
     my $file = File::Spec->catfile($dir, @fileparts);
     if (open my $fh, '>', $file) {
         print {$fh} ${$code_ref};
-        close $fh or throw_generic "unable to close $file: $!";
+        close $fh or confess "unable to close $file: $!";
     }
 
-    # Use eval so we can clean up before throwing an exception in case of
-    # error.
+    # Use eval so we can clean up before die() in case of error.
     my @v = eval {$c->critique($file)};
     my $err = $EVAL_ERROR;
     File::Path::rmtree($dir, 0, 1);
     if ($err) {
-        throw_generic $err;
+        confess $err;
     }
     return @v;
 }
@@ -135,11 +134,11 @@ sub subtests_in_tree {
 
     find( {wanted => sub {
                return if ! -f $_;
-               my ($fileroot) = m{(.+)\.run\z}mx;
+               my ($fileroot) = m{(.+)[.]run\z}mx;
                return if !$fileroot;
                my @pathparts = File::Spec->splitdir($fileroot);
                if (@pathparts < 2) {
-                   throw_internal 'confusing policy test filename ' . $_;
+                   confess 'confusing policy test filename ' . $_;
                }
                my $policy = join q{::}, @pathparts[-2, -1]; ## no critic (MagicNumbers)
 
@@ -148,6 +147,22 @@ sub subtests_in_tree {
            }, no_chdir => 1}, $start );
     return \%subtests;
 }
+
+# Answer whether author test should be run.
+#
+# Note: this code is duplicated in
+# t/tlib/Perl/Critic/TestUtilitiesWithMinimalDependencies.pm.
+# If you change this here, make sure to change it there.
+
+sub should_skip_author_tests {
+    return !$ENV{TEST_AUTHOR}
+}
+
+sub get_author_test_skip_message {
+    ## no critic (RequireInterpolation);
+    return 'Author test.  Set $ENV{TEST_AUTHOR} to a true value to run.';
+}
+
 
 sub starting_points_including_examples {
     return (-e 'blib' ? 'blib' : 'lib', 'examples');
@@ -160,13 +175,12 @@ sub starting_points_including_examples {
 sub _subtests_from_file {
     my $test_file = shift;
 
-    my %valid_keys = hashify qw( name failures parms TODO error filename );
+    my %valid_keys = hashify qw( name failures parms TODO error filename optional_modules );
 
-    # XXX Remove me once all subtest files are populated
-    return if -z $test_file;
+    return if -z $test_file;  # Skip if the Policy has a regular .t file.
 
-    open my $fh, '<', $test_file
-      or throw_internal "Couldn't open $test_file: $OS_ERROR";
+    open my $fh, '<', $test_file   ## no critic (RequireBriefOpen)
+      or confess "Couldn't open $test_file: $OS_ERROR";
 
     my @subtests;
 
@@ -181,13 +195,11 @@ sub _subtests_from_file {
         my $line = $_;
 
         if ( $inheader ) {
-            $line =~ m/\A\#/mx or throw_internal "Code before cut: $test_file";
-            my ($key,$value) = $line =~ m/\A\#\#[ ](\S+)(?:\s+(.+))?/mx;
+            $line =~ m/\A [#]/mx or confess "Code before cut: $test_file";
+            my ($key,$value) = $line =~ m/\A [#][#] [ ] (\S+) (?:\s+(.+))? /mx;
             next if !$key;
             next if $key eq 'cut';
-            if ( not $valid_keys{$key} ) {
-                throw_internal "Unknown key $key in $test_file";
-            }
+            confess "Unknown key $key in $test_file" if !$valid_keys{$key};
 
             if ( $key eq 'name' ) {
                 if ( $subtest ) { # Stash any current subtest
@@ -198,7 +210,7 @@ sub _subtests_from_file {
                 $incode = 0;
             }
             if ($incode) {
-                throw_internal "Header line found while still in code: $test_file";
+                confess "Header line found while still in code: $test_file";
             }
             $subtest->{$key} = $value;
         }
@@ -209,16 +221,16 @@ sub _subtests_from_file {
         }
         elsif (@subtests) {
             ## don't complain if we have not yet hit the first test
-            throw_internal "Got some code but I'm not in a subtest: $test_file";
+            confess "Got some code but I'm not in a subtest: $test_file";
         }
     }
-    close $fh or throw_generic "unable to close $test_file: $!";
+    close $fh or confess "unable to close $test_file: $!";
     if ( $subtest ) {
         if ( $incode ) {
             push @subtests, _finalize_subtest( $subtest );
         }
         else {
-            throw_internal "Incomplete subtest in $test_file";
+            confess "Incomplete subtest in $test_file";
         }
     }
 
@@ -232,21 +244,19 @@ sub _finalize_subtest {
         $subtest->{code} = join "\n", @{$subtest->{code}};
     }
     else {
-        throw_internal "$subtest->{name} has no code lines";
+        confess "$subtest->{name} has no code lines";
     }
     if ( !defined $subtest->{failures} ) {
-        throw_internal "$subtest->{name} does not specify failures";
+        confess "$subtest->{name} does not specify failures";
     }
     if ($subtest->{parms}) {
         $subtest->{parms} = eval $subtest->{parms}; ## no critic(StringyEval)
         if ($EVAL_ERROR) {
-            throw_internal
-                "$subtest->{name} has an error in the 'parms' property:\n"
-                  . $EVAL_ERROR;
+            confess "$subtest->{name} has an error in the 'parms' property:\n"
+              . $EVAL_ERROR;
         }
         if ('HASH' ne ref $subtest->{parms}) {
-            throw_internal
-                "$subtest->{name} 'parms' did not evaluate to a hashref";
+            confess "$subtest->{name} 'parms' did not evaluate to a hashref";
         }
     } else {
         $subtest->{parms} = {};
@@ -254,10 +264,9 @@ sub _finalize_subtest {
 
     if (defined $subtest->{error}) {
         if ( $subtest->{error} =~ m{ \A / (.*) / \z }xms) {
-            $subtest->{error} = eval {qr/$1/};
+            $subtest->{error} = eval {qr/$1/}; ##no critic (RegularExpressions::)
             if ($EVAL_ERROR) {
-                throw_internal
-                    "$subtest->{name} 'error' has a malformed regular expression";
+                confess "$subtest->{name} 'error' has a malformed regular expression";
             }
         }
     }
@@ -386,6 +395,15 @@ keyed on policy short name, like C<Modules::RequireEndWithOne>.  The inner
 hash specifies a single test to be handed to C<pcritique()> or C<fcritique()>,
 including the code string, test name, etc.  See below for the syntax of the
 F<.run> files.
+
+=item should_skip_author_tests()
+
+Answers whether author tests should run.
+
+=item get_author_test_skip_message()
+
+Returns a string containing the message that should be emitted when a test
+is skipped due to it being an author test when author tests are not enabled.
 
 =item starting_points_including_examples()
 

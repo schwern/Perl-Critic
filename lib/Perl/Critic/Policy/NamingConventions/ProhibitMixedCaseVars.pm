@@ -14,12 +14,13 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
 Readonly::Scalar my $PACKAGE_RX => qr/ :: /mx;
-Readonly::Scalar my $MIXED_RX   => qr/ [A-Z][a-z] | [a-z][A-Z] /mx;
+Readonly::Scalar my $MIXED_RX   => qr{ \p{IsUppercase}\p{IsLowercase} |
+                                       \p{IsLowercase}\p{IsUppercase} }mx;
 Readonly::Scalar my $DESC       => 'Mixed-case variable name(s)';
 Readonly::Scalar my $EXPL       => [ 44 ];
 
@@ -49,8 +50,8 @@ sub _has_mixed_case_vars {
         #because we can't really be responsible for symbols that
         #are defined in other packages.
 
-        next if $elem->type() eq 'local' && $variable_name =~ $PACKAGE_RX;
-        return 1 if $variable_name =~ $MIXED_RX;
+        next if $elem->type() eq 'local' && $variable_name =~ m/$PACKAGE_RX/xms;
+        return 1 if $variable_name =~ m/$MIXED_RX/xms;
     }
     return 0;
 }

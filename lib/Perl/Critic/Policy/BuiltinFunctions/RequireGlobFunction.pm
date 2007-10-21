@@ -14,11 +14,11 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $GLOB_RX => qr{ [\*\?] }x;
+Readonly::Scalar my $GLOB_RX => qr{ [*?] }mx;
 Readonly::Scalar my $DESC    => q{Glob written as <...>};
 Readonly::Scalar my $EXPL    => [ 167 ];
 

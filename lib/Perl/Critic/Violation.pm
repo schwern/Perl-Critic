@@ -12,6 +12,8 @@ use warnings;
 use English qw(-no_match_vars);
 use Readonly;
 
+use Carp qw(confess);
+
 use File::Basename qw(basename);
 use IO::String qw();
 use Pod::PlainText qw();
@@ -19,9 +21,8 @@ use String::Format qw(stringf);
 use overload ( q{""} => 'to_string', cmp => '_compare' );
 
 use Perl::Critic::Utils qw{ :characters :internal_lookup };
-use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #Class variables...
 our $FORMAT = "%m at line %l, column %c. %e.\n"; #Default stringy format
@@ -38,7 +39,7 @@ sub new {
     #be creating new Perl::Critic::Policy modules.
 
     if ( @_ != $CONSTRUCTOR_ARG_COUNT ) {
-        throw_internal 'Wrong number of args to Violation->new()';
+        confess 'Wrong number of args to Violation->new()';
     }
 
     if ( ! eval { $elem->isa( 'PPI::Element' ) } ) {
@@ -48,8 +49,7 @@ sub new {
             $elem = $elem->{_doc};
         }
         else {
-            throw_internal
-                '3rd arg to Violation->new() must be a PPI::Element';
+            confess '3rd arg to Violation->new() must be a PPI::Element';
         }
     }
 
@@ -236,7 +236,7 @@ sub _get_diagnostics {
 
     my $file = shift;
 
-    (my $podfile = $file) =~ s{\.[^\.]+ \z}{.pod}mx;
+    (my $podfile = $file) =~ s{[.][^.]+ \z}{.pod}mx;
     if (-f $podfile)
     {
        $file = $podfile;
@@ -253,6 +253,7 @@ sub _get_diagnostics {
     # Pod::Parser::parse_from_file
     return $EMPTY if not (open my $fh, '<', $file);
     $parser->parse_from_filehandle( $fh, $handle );
+    return $EMPTY if not close $fh;
 
     # Remove header and trailing whitespace.
     $pod_string =~ s{ \A \s* DESCRIPTION \s* \n}{}mx;
@@ -325,12 +326,14 @@ the violation, and the severity of the violation (as an integer).
 
 =item C<description()>
 
-Returns a brief description of the policy that has been violated as a string.
+Returns a brief description of the specific violation.  In other
+words, this value may change on a per violation basis.
 
 =item C<explanation()>
 
 Returns an explanation of the policy as a string or as reference to
-an array of page numbers in PBP.
+an array of page numbers in PBP.  This value will generally not change
+based upon the specific code violating the policy.
 
 =item C<location()>
 

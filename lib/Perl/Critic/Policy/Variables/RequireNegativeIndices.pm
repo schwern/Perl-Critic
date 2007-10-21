@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ sub _arrayindex {
     # return (varname, isref=0|1, isindex=0|1) if this could be a violation
     my ( $expr ) = @_;
     my $arrindex = shift @{$expr};
-    if ($arrindex->content =~ m/\A \$\# (.*) \z /xms) { # What else could it be???
+    if ($arrindex->content =~ m/\A \$[#] (.*) \z /xms) { # What else could it be???
        return $1, 0, 1;
     }
     return;
@@ -129,21 +129,10 @@ sub _symbol {
     return;
 }
 
-sub _is_minus_number  # return true if @expr looks like "- n"
-{
+sub _is_minus_number {  # return true if @expr looks like "- n"
     my @expr = @_;
 
     return if !@expr;
-
-    ## Workaround for PPI 1.115 bug "t/data/08_regression/14_minus.code"
-    # Consider deleting this block when we depend on a later PPI
-    if ( @expr == 1 ) {
-        my $number = shift @expr;
-        return if !$number->isa('PPI::Token::Number');
-        return if $number !~ m/\A \-/xms;
-        return 1;
-    }
-    ## End workaround
 
     return if @expr != 2;
 

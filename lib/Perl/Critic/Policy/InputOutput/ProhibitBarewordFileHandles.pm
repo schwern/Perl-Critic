@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :ppi };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ sub violates {
     return if !$first_token;
 
     if ( $first_token->isa('PPI::Token::Word') ) {
-        if ( ($first_token ne 'my') && ($first_token !~ m/^STD(IN|OUT|ERR)$/mx ) ) {
+        if ( ($first_token ne 'my') && ($first_token !~ m/^STD(?:IN|OUT|ERR)$/mx ) ) {
             return $self->violation( $DESC, $EXPL, $elem );
         }
     }

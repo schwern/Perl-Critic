@@ -13,10 +13,12 @@ use Readonly;
 
 use List::MoreUtils qw(all);
 
-use Perl::Critic::Utils qw{ :characters :severities :data_conversion };
+use Perl::Critic::Utils qw{
+    :booleans :characters :severities :data_conversion
+};
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -25,35 +27,25 @@ Readonly::Scalar my $EXPL => [ 431 ];
 
 #-----------------------------------------------------------------------------
 
-sub supported_parameters {
-    return (
-        {
-            name            => 'allow',
-            description     => 'Permitted warning categories.',
-            default_string  => $EMPTY,
-            parser          => \&_parse_allow,
-        },
-    );
-}
-
+sub supported_parameters { return qw( allow )               }
 sub default_severity { return $SEVERITY_HIGH            }
 sub default_themes   { return qw( core bugs pbp )       }
 sub applies_to       { return 'PPI::Statement::Include' }
 
 #-----------------------------------------------------------------------------
 
-sub _parse_allow {
-    my ($self, $parameter, $config_string) = @_;
+sub initialize_if_enabled {
+    my ($self, $config) = @_;
 
     $self->{_allow} = {};
 
-    if( defined $config_string ) {
-        my $allowed = lc $config_string; #String of words
+    if( defined $config->{allow} ) {
+        my $allowed = lc $config->{allow}; #String of words
         my %allowed = hashify( $allowed =~ m/ (\w+) /gmx );
         $self->{_allow} = \%allowed;
     }
 
-    return;
+    return $TRUE;
 }
 
 #-----------------------------------------------------------------------------
@@ -67,13 +59,18 @@ sub violates {
 
     #Arguments to 'no warnings' are usually a list of literals or a
     #qw() list.  Rather than trying to parse the various PPI elements,
-    #I just use a regex to split the statement into words.  This is
+    #I just use a regext to split the statement into words.  This is
     #kinda lame, but it does the trick for now.
+
+    # TODO consider: a possible alternate implementation:
+    #   my $re = join q{|}, keys %{$self->{allow}};
+    #   return if $re && $stmnt =~ m/\b(?:$re)\b/mx;
+    # May need to detaint for that to work...  Not sure.
 
     my $stmnt = $elem->statement();
     return if !$stmnt;
-    my @words = split m{ [^a-z]+ }mx, $stmnt;
-    @words = grep { $_ !~ m{ qw|no|warnings }mx } @words;
+    my @words = $stmnt =~ m{ (\p{IsLowercase}+) }gmx;
+    @words = grep { $_ ne 'qw' && $_ ne 'no' && $_ ne 'warnings' } @words;
     return if all { exists $self->{_allow}->{$_} } @words;
 
     #If we get here, then it must be a violation

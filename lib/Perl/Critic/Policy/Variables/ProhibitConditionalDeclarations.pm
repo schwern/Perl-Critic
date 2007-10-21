@@ -14,7 +14,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :data_conversion };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
@@ -32,6 +32,7 @@ sub applies_to           { return 'PPI::Statement::Variable' }
 
 sub violates {
     my ( $self, $elem, undef ) = @_;
+    return if $elem->type() eq 'local';
 
     if ( $elem->find(\&_is_conditional) ) {
         return $self->violation( $DESC, $EXPL, $elem );

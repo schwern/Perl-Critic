@@ -14,15 +14,15 @@ use strict;
 use warnings;
 use Readonly;
 
+use Carp qw(confess);
 use File::Spec qw();
 use Scalar::Util qw( blessed );
 use B::Keywords qw();
-
-use Perl::Critic::Exception::Fatal::Generic qw{ throw_generic };
+use PPI::Token::Quote::Single;
 
 use base 'Exporter';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 # Exportable symbols here.
@@ -59,44 +59,44 @@ Readonly::Array our @EXPORT_OK => qw(
     $LEFT_PAREN
     $RIGHT_PAREN
 
-    &all_perl_files
-    &find_keywords
-    &first_arg
-    &hashify
-    &interpolate
-    &is_class_name
-    &is_function_call
-    &is_hash_key
-    &is_in_void_context
-    &is_included_module_name
-    &is_integer
-    &is_label_pointer
-    &is_method_call
-    &is_package_declaration
-    &is_perl_bareword
-    &is_perl_builtin
-    &is_perl_builtin_with_list_context
-    &is_perl_builtin_with_multiple_arguments
-    &is_perl_builtin_with_no_arguments
-    &is_perl_builtin_with_one_argument
-    &is_perl_builtin_with_optional_argument
-    &is_perl_builtin_with_zero_and_or_one_arguments
-    &is_perl_filehandle
-    &is_perl_global
-    &is_qualified_name
-    &is_script
-    &is_subroutine_name
-    &is_unchecked_call
-    &is_valid_numeric_verbosity
-    &parse_arg_list
-    &policy_long_name
-    &policy_short_name
-    &precedence_of
-    &severity_to_number
-    &shebang_line
-    &split_nodes_on_comma
-    &verbosity_to_format
-    &words_from_string
+    all_perl_files
+    find_keywords
+    first_arg
+    hashify
+    interpolate
+    is_class_name
+    is_function_call
+    is_hash_key
+    is_in_void_context
+    is_included_module_name
+    is_integer
+    is_label_pointer
+    is_method_call
+    is_package_declaration
+    is_perl_bareword
+    is_perl_builtin
+    is_perl_builtin_with_list_context
+    is_perl_builtin_with_multiple_arguments
+    is_perl_builtin_with_no_arguments
+    is_perl_builtin_with_one_argument
+    is_perl_builtin_with_optional_argument
+    is_perl_builtin_with_zero_and_or_one_arguments
+    is_perl_filehandle
+    is_perl_global
+    is_qualified_name
+    is_script
+    is_subroutine_name
+    is_unchecked_call
+    is_valid_numeric_verbosity
+    parse_arg_list
+    policy_long_name
+    policy_short_name
+    precedence_of
+    severity_to_number
+    shebang_line
+    split_nodes_on_comma
+    verbosity_to_format
+    words_from_string
 );
 
 
@@ -138,36 +138,36 @@ Readonly::Hash our %EXPORT_TAGS => (
     ],
     classification  => [
         qw{
-            &is_class_name
-            &is_function_call
-            &is_hash_key
-            &is_included_module_name
-            &is_integer
-            &is_label_pointer
-            &is_method_call
-            &is_package_declaration
-            &is_perl_bareword
-            &is_perl_builtin
-            &is_perl_filehandle
-            &is_perl_global
-            &is_perl_builtin_with_list_context
-            &is_perl_builtin_with_multiple_arguments
-            &is_perl_builtin_with_no_arguments
-            &is_perl_builtin_with_one_argument
-            &is_perl_builtin_with_optional_argument
-            &is_perl_builtin_with_zero_and_or_one_arguments
-            &is_qualified_name
-            &is_script
-            &is_subroutine_name
-            &is_unchecked_call
-            &is_valid_numeric_verbosity
+            is_class_name
+            is_function_call
+            is_hash_key
+            is_included_module_name
+            is_integer
+            is_label_pointer
+            is_method_call
+            is_package_declaration
+            is_perl_bareword
+            is_perl_builtin
+            is_perl_filehandle
+            is_perl_global
+            is_perl_builtin_with_list_context
+            is_perl_builtin_with_multiple_arguments
+            is_perl_builtin_with_no_arguments
+            is_perl_builtin_with_one_argument
+            is_perl_builtin_with_optional_argument
+            is_perl_builtin_with_zero_and_or_one_arguments
+            is_qualified_name
+            is_script
+            is_subroutine_name
+            is_unchecked_call
+            is_valid_numeric_verbosity
         }
     ],
-    data_conversion => [ qw{ &hashify &words_from_string &interpolate } ],
-    ppi             => [ qw{ &first_arg &parse_arg_list } ],
-    internal_lookup => [ qw{ &severity_to_number &verbosity_to_format } ],
-    language        => [ qw{ &precedence_of } ],
-    deprecated      => [ qw{ &find_keywords } ],
+    data_conversion => [ qw{ hashify words_from_string interpolate } ],
+    ppi             => [ qw{ first_arg parse_arg_list } ],
+    internal_lookup => [ qw{ severity_to_number verbosity_to_format } ],
+    language        => [ qw{ precedence_of } ],
+    deprecated      => [ qw{ find_keywords } ],
 );
 
 #-----------------------------------------------------------------------------
@@ -832,7 +832,7 @@ sub parse_arg_list {
             last if $iter->isa('PPI::Token::Structure') and $iter eq $SCOLON;
             push @arg_list, $iter;
         }
-        return  split_nodes_on_comma( @arg_list );
+        return split_nodes_on_comma( @arg_list );
     }
 }
 
@@ -847,6 +847,16 @@ sub split_nodes_on_comma {
         if ( $node->isa('PPI::Token::Operator') &&
                 (($node eq $COMMA) || ($node eq $FATCOMMA)) ) {
             $i++; #Move forward to next 'node stack'
+            next;
+        } elsif ( $node->isa('PPI::Token::QuoteLike::Words' )) {
+            my $section = $node->{sections}->[0];
+            my @words = words_from_string(substr $node->content, $section->{position}, $section->{size});
+            my $loc = $node->location;
+            for my $word (@words) {
+                my $token = PPI::Token::Quote::Single->new(q{'} . $word . q{'});
+                $token->{_location} = $loc;
+                push @{ $node_stacks[$i++] }, $token;
+            }
             next;
         }
         push @{ $node_stacks[$i] }, $node;
@@ -908,11 +918,7 @@ sub severity_to_number {
     my ($severity) = @_;
     return _normalize_severity( $severity ) if is_integer( $severity );
     my $severity_number = $SEVERITY_NUMBER_OF{lc $severity};
-
-    if ( not defined $severity_number ) {
-        throw_generic qq{Invalid severity: "$severity"};
-    }
-
+    confess qq{Invalid severity: "$severity"} if not defined $severity_number;
     return $severity_number;
 }
 
@@ -978,16 +984,16 @@ sub _is_perl {
     my ($file) = @_;
 
     #Check filename extensions
-    return 1 if $file =~ m{ [.] PL          \z}mx;
-    return 1 if $file =~ m{ [.] p (?: l|m ) \z}mx;
-    return 1 if $file =~ m{ [.] t           \z}mx;
+    return 1 if $file =~ m{ [.] PL    \z}mx;
+    return 1 if $file =~ m{ [.] p[lm] \z}mx;
+    return 1 if $file =~ m{ [.] t     \z}mx;
 
     #Check for shebang
-    open my ($fh), '<', $file or return;
+    open my $fh, '<', $file or return;
     my $first = <$fh>;
-    close $fh or throw_generic "unable to close $file: $!";
+    close $fh or confess "unable to close $file: $!";
 
-    return 1 if defined $first && ( $first =~ m{ \A \#![ ]*\S*perl }mx );
+    return 1 if defined $first && ( $first =~ m{ \A [#]![ ]*\S*perl }mx );
     return;
 }
 
@@ -1004,7 +1010,7 @@ sub shebang_line {
     return if $location->[0] != 1; # line number
     return if $location->[1] != 1; # column number
     my $shebang = $first_comment->content;
-    return if $shebang !~ m{ \A \#\! }mx;
+    return if $shebang !~ m{ \A [#]! }mx;
     return $shebang;
 }
 
@@ -1063,10 +1069,36 @@ sub is_unchecked_call {
         }
     }
 
+    return if _is_fatal($elem);
+
     # Otherwise, return. this system call is unchecked.
     return 1;
 }
 
+sub _is_fatal {
+    my ($elem) = @_;
+
+    my $top = $elem->top;
+    return if !$top->isa('PPI::Document');
+    my $includes = $top->find('PPI::Statement::Include');
+    return if !$includes;
+    for my $include (@{$includes}) {
+        next if 'use' ne $include->type;
+        if ('Fatal' eq $include->module) {
+            my @args = parse_arg_list($include->schild(1));
+            for my $arg (@args) {
+                return 1 if $arg->[0]->isa('PPI::Token::Quote') && $elem eq $arg->[0]->string;
+            }
+        } elsif ('Fatal::Exception' eq $include->module) {
+            my @args = parse_arg_list($include->schild(1));
+            shift @args;  # skip exception class name
+            for my $arg (@args) {
+                return 1 if $arg->[0]->isa('PPI::Token::Quote') && $elem eq $arg->[0]->string;
+            }
+        }
+    }
+    return;
+}
 
 1;
 
@@ -1491,24 +1523,24 @@ C<$RIGHT_PAREN>
 =item C<:classification>
 
 Includes:
-C<&is_function_call>,
-C<&is_hash_key>,
-C<&is_included_module_name>,
-C<&is_integer>,
-C<&is_method_call>,
-C<&is_package_declaration>,
-C<&is_perl_builtin>,
-C<&is_perl_global>,
-C<&is_perl_builtin_with_list_context>
-C<&is_perl_builtin_with_multiple_arguments>
-C<&is_perl_builtin_with_no_arguments>
-C<&is_perl_builtin_with_one_argument>
-C<&is_perl_builtin_with_optional_argument>
-C<&is_perl_builtin_with_zero_and_or_one_arguments>
-C<&is_script>,
-C<&is_subroutine_name>,
-C<&is_unchecked_call>
-C<&is_valid_numeric_verbosity>
+C<is_function_call>,
+C<is_hash_key>,
+C<is_included_module_name>,
+C<is_integer>,
+C<is_method_call>,
+C<is_package_declaration>,
+C<is_perl_builtin>,
+C<is_perl_global>,
+C<is_perl_builtin_with_list_context>
+C<is_perl_builtin_with_multiple_arguments>
+C<is_perl_builtin_with_no_arguments>
+C<is_perl_builtin_with_one_argument>
+C<is_perl_builtin_with_optional_argument>
+C<is_perl_builtin_with_zero_and_or_one_arguments>
+C<is_script>,
+C<is_subroutine_name>,
+C<is_unchecked_call>
+C<is_valid_numeric_verbosity>
 
 See also L<Perl::Critic::Utils::PPI>.
 
@@ -1517,17 +1549,17 @@ See also L<Perl::Critic::Utils::PPI>.
 Generic manipulation, not having anything specific to do with Perl::Critic.
 
 Includes:
-C<&hashify>,
-C<&words_from_string>,
-C<&interpolate>
+C<hashify>,
+C<words_from_string>,
+C<interpolate>
 
 =item C<:ppi>
 
 Things for dealing with L<PPI>, other than classification.
 
 Includes:
-C<&first_arg>,
-C<&parse_arg_list>
+C<first_arg>,
+C<parse_arg_list>
 
 See also L<Perl::Critic::Utils::PPI>.
 
@@ -1536,15 +1568,15 @@ See also L<Perl::Critic::Utils::PPI>.
 Translations between internal representations.
 
 Includes:
-C<&severity_to_number>,
-C<&verbosity_to_format>
+C<severity_to_number>,
+C<verbosity_to_format>
 
 =item C<:language>
 
 Information about Perl not programmatically available elsewhere.
 
 Includes:
-C<&precedence_of>
+C<precedence_of>
 
 =item C<:deprecated>
 
@@ -1553,7 +1585,7 @@ to get to these functions, rather than the function names themselves, so as to
 mark any module using them as needing cleanup.
 
 Includes:
-C<&find_keywords>
+C<find_keywords>
 
 =back
 

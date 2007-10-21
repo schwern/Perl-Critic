@@ -17,7 +17,7 @@ foreach my $file (<*.pl>) {
 #-----------------------------------------------------------------------------
 
 ## name Multiple globs via <...>
-## failures 1
+## failures 2
 ## cut
 
 @files = (<*.pl>, <*.pm>);

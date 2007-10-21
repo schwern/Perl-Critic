@@ -14,11 +14,12 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = 1.072;
+our $VERSION = '1.079_001';
 
 #-----------------------------------------------------------------------------
 
-Readonly::Scalar my $MIXED_RX => qr/ [A-Z][a-z] | [a-z][A-Z] /x;
+Readonly::Scalar my $MIXED_RX => qr{ \p{IsUppercase}\p{IsLowercase} |
+                                     \p{IsLowercase}\p{IsUppercase} }mx;
 Readonly::Scalar my $DESC     => 'Mixed-case subroutine name';
 Readonly::Scalar my $EXPL     => [ 44 ];
 
@@ -34,7 +35,7 @@ sub applies_to           { return 'PPI::Statement::Sub'   }
 sub violates {
     my ( $self, $elem, undef ) = @_;
     (my $name = $elem->name() ) =~ s/\A.*:://mx;
-    if ( $name =~ $MIXED_RX ) {
+    if ( $name =~ m/$MIXED_RX/xms ) {
         return $self->violation( $DESC, $EXPL, $elem );
     }
     return;    #ok!

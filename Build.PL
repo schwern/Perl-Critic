@@ -9,13 +9,17 @@ use strict;
 use warnings;
 
 use lib 'inc';
+use lib 't/tlib';
 
 use Module::Build;
 
-use Perl::Critic::BuildUtilities qw{
-    &recommended_module_versions
-    &test_wrappers_to_generate
-};
+use Perl::Critic::BuildUtilities qw<
+    recommended_module_versions
+    test_wrappers_to_generate
+    get_PL_files
+    dump_unlisted_or_optional_module_versions
+    emit_tar_warning_if_necessary
+>;
 
 my $warning = <<'END_WARNING';
 
@@ -54,6 +58,7 @@ eval {
     warn $warning if $Perl::Critic::VERSION < 0.14;
 };
 
+emit_tar_warning_if_necessary();
 
 my $builder = Module::Build->new(
 
@@ -64,14 +69,13 @@ my $builder = Module::Build->new(
 
   requires       => {'B::Keywords'           => 1.05,
                      'Config::Tiny'          => 2,
-                     'Exception::Class'      => 1.23,
                      'File::Spec'            => 0,
                      'File::Spec::Unix'      => 0,
                      'IO::String'            => 0,
                      'List::MoreUtils'       => 0,
                      'List::Util'            => 0,
                      'Module::Pluggable'     => 3.1,
-                     'PPI'                   => 1.118,
+                     'PPI'                   => 1.200,
                      'Pod::PlainText'        => 0,
                      'Pod::Usage'            => 0,
                      'Readonly'              => 1.03,
@@ -84,26 +88,25 @@ my $builder = Module::Build->new(
   build_requires => {'Test::More'            => 0,
                     },
 
-  PL_files       => {
-      't/generate_without_optional_dependencies_wrappers.PL' => [
-          test_wrappers_to_generate()
-      ]
-  },
+  PL_files       => get_PL_files(),
 
   script_files   => ['bin/perlcritic'],
 
   add_to_cleanup => [
-                    qw{
+                    qw<
                         MANIFEST.bak
                         Makefile
                         Makefile.old
                         pm_to_blib
-                    },
+                        t/ControlStructures/ProhibitNegativeExpressionsInUnlessAndUntilConditions.run
+                    >,
                     test_wrappers_to_generate(),
   ],
 );
 
 $builder->create_build_script();
+
+dump_unlisted_or_optional_module_versions();
 
 ##############################################################################
 # Local Variables:
