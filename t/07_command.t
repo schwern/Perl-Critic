@@ -19,7 +19,7 @@ use File::Spec;
 use Perl::Critic::Command qw< run >;
 use Perl::Critic::Utils qw< :characters >;
 
-use Test::More tests => 57;
+use Test::More tests => 58;
 
 #-----------------------------------------------------------------------------
 
@@ -215,6 +215,13 @@ foreach my $severity ([qw{
         is( $options{$canonical}, 'cyan', $message );
     }
 }
+
+#-----------------------------------------------------------------------------
+
+local @ARGV = qw(-document-type foo);
+$message = "@ARGV";
+%options = eval { Perl::Critic::Command::_get_options() };
+is( $options{'-document-type'}, 'foo', $message );
 
 #-----------------------------------------------------------------------------
 # Intercept pod2usage so we can test invalid options and special switches

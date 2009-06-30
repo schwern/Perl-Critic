@@ -156,6 +156,8 @@ sub test_is_script {
         "\n#!perl\n",
     );
 
+    no warnings qw< deprecated >;   ## no critic (TestingAndDebugging::ProhibitNoWarnings)
+
     for my $code (@good) {
         my $doc = make_doc( $code ) or confess;
         ok(is_script($doc), 'is_script, true');
@@ -183,6 +185,7 @@ sub test_is_script_with_PL_files { ## no critic (NamingConventions::Capitalizati
     close $temp_file or confess "Couldn't close $temp_file: $OS_ERROR";
 
     my $doc = PPI::Document::File->new($temp_file->filename());
+    no warnings qw< deprecated >;   ## no critic (TestingAndDebugging::ProhibitNoWarnings)
     ok(is_script($doc), 'is_script, false for .PL files');
 
     return;

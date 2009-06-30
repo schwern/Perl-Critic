@@ -25,7 +25,8 @@ use Perl::Critic::Config;
 use Perl::Critic::Violation;
 use Perl::Critic::Document;
 use Perl::Critic::Statistics;
-use Perl::Critic::Utils qw{ :characters hashify };
+use Perl::Critic::Utils qw{ :characters hashify shebang_line };
+use Perl::Critic::Utils::Constants qw{ :document_type };
 
 #-----------------------------------------------------------------------------
 
@@ -102,6 +103,7 @@ sub critique {  ## no critic (ArgUnpacking)
 
     my $doc = blessed($source_code) && $source_code->isa('Perl::Critic::Document') ?
         $source_code : Perl::Critic::Document->new($source_code);
+    $doc->document_type($self->_compute_document_type($doc));
 
     if ( 0 == $self->policies() ) {
         Perl::Critic::Exception::Configuration::Generic->throw(
@@ -205,6 +207,25 @@ sub _futz_with_policy_order {
     my $idx = firstidx {ref $_ eq $magical_policy_name} @policy_objects;
     push @policy_objects, splice @policy_objects, $idx, 1;
     return @policy_objects;
+}
+
+#-----------------------------------------------------------------------------
+
+sub _compute_document_type {
+    my ($self, $doc) = @_;
+    my $config = $self->config();
+    my $document_type = $config->document_type();
+    return $document_type
+        if $document_type ne $DOCUMENT_TYPE_AUTO;
+    return $DOCUMENT_TYPE_SCRIPT
+        if shebang_line($doc);
+    if (defined (my $file_name = $doc->filename())) {
+        foreach my $regex ( $config->script_extensions_as_regexes() ) {
+            return $DOCUMENT_TYPE_SCRIPT
+                if $file_name =~ m/$regex/smx;
+        }
+    }
+    return $DOCUMENT_TYPE_MODULE;
 }
 
 #-----------------------------------------------------------------------------

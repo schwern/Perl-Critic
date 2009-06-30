@@ -22,7 +22,8 @@ use version;
 
 use Perl::Critic::Annotation;
 use Perl::Critic::Exception::Parse qw< throw_parse >;
-use Perl::Critic::Utils qw < :characters >;
+use Perl::Critic::Utils qw < :characters shebang_line >;
+use Perl::Critic::Utils::Constants qw< :document_type >;
 use Perl::Critic::PPIx::Optimized;
 
 
@@ -82,6 +83,7 @@ sub _init {
     $self->{_disabled_line_map} = {};
     $self->index_locations();
     $self->_disable_shebang_fix();
+    $self->document_type( $self->_compute_document_type() );
 
     return $self;
 }
@@ -236,6 +238,29 @@ sub suppressed_violations {
 }
 
 #-----------------------------------------------------------------------------
+
+sub document_type { ## no critic (Subroutines::RequireArgUnpacking)
+    my $self = shift;
+    @_ and $self->{_document_type} = shift;
+    return $self->{_document_type};
+}
+
+#-----------------------------------------------------------------------------
+
+sub is_script {
+    my ($self) = @_;
+    return defined $self->{_document_type} &&
+        $self->{_document_type} eq $DOCUMENT_TYPE_SCRIPT;
+}
+
+#-----------------------------------------------------------------------------
+
+sub is_module {
+    my ($self) = @_;
+    return !$self->is_script();
+}
+
+#-----------------------------------------------------------------------------
 # PRIVATE functions & methods
 
 sub _find_perl_version_includes {
@@ -273,6 +298,21 @@ sub _disable_shebang_fix {
     }
 
     return $self;
+}
+
+#-----------------------------------------------------------------------------
+
+sub _compute_document_type {
+    my ($self) = @_;
+    if ( shebang_line($self) ) {
+        return $DOCUMENT_TYPE_SCRIPT;
+    } elsif ( defined (my $file_name = $self->filename()) ) {
+        return $file_name =~ m/ [.] PL \z /smx ?
+            $DOCUMENT_TYPE_SCRIPT :
+            $DOCUMENT_TYPE_MODULE;
+    } else {
+        return $DOCUMENT_TYPE_MODULE;
+    }
 }
 
 #-----------------------------------------------------------------------------
@@ -412,6 +452,29 @@ annotation. Returns C<$self>.
 
 Returns a list of references to all the L<Perl::Critic::Violation>s
 that were found in this Document but were suppressed.
+
+=item C<< document_type() >>
+
+Returns the current value of the C<document_type> attribute. Sets the value
+first if an argument is provided. Any value is accepted, but see the C<<
+is_script() >> and C<< is_module() >> methods below for consequences of
+values. When the C<Perl::Critic::Document> object is instantiated, it will be
+set to L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> if the
+document has a shebang line, or if has a file name which ends in '.PL'.
+Otherwise, it will be set to
+L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. This attribute
+exists to support L<Perl::Critic|Perl::Critic>.
+
+=item C<< is_script() >>
+
+Returns a true value if the C<document_type> attribute is defined and equal to
+L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT">. Otherwise returns
+false. This method exists to support L<Perl::Critic|Perl::Critic>. 
+
+=item C<< is_module() >>
+
+Returns the inverse of the value returned by C<< is_script() >>. This method
+exists to support L<Perl::Critic|Perl::Critic>.
 
 =back
 

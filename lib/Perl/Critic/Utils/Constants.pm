@@ -31,6 +31,10 @@ our @EXPORT_OK = qw{
     $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT
     $PROFILE_COLOR_SEVERITY_LOW_DEFAULT
     $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
+    $DOCUMENT_TYPE_SCRIPT
+    $DOCUMENT_TYPE_MODULE
+    $DOCUMENT_TYPE_AUTO
+    %DOCUMENT_TYPES
 };
 
 our %EXPORT_TAGS = (
@@ -51,6 +55,14 @@ our %EXPORT_TAGS = (
             $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT
             $PROFILE_COLOR_SEVERITY_LOW_DEFAULT
             $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
+        }
+    ],
+    document_type => [
+        qw{
+            $DOCUMENT_TYPE_SCRIPT
+            $DOCUMENT_TYPE_MODULE
+            $DOCUMENT_TYPE_AUTO
+            %DOCUMENT_TYPES
         }
     ],
 );
@@ -74,6 +86,17 @@ Readonly::Scalar our $PROFILE_COLOR_SEVERITY_HIGH_DEFAULT       => 'magenta';
 Readonly::Scalar our $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT     => $EMPTY;
 Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOW_DEFAULT        => $EMPTY;
 Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT     => $EMPTY;
+
+Readonly::Scalar our $DOCUMENT_TYPE_SCRIPT  => 'script';
+Readonly::Scalar our $DOCUMENT_TYPE_MODULE  => 'module';
+Readonly::Scalar our $DOCUMENT_TYPE_AUTO    => 'auto';
+
+Readonly::Hash our %DOCUMENT_TYPES =>
+    hashify(
+        $DOCUMENT_TYPE_SCRIPT,
+        $DOCUMENT_TYPE_MODULE,
+        $DOCUMENT_TYPE_AUTO,
+    );
 
 #-----------------------------------------------------------------------------
 
@@ -148,6 +171,26 @@ C<:color_severity> tag.
 
 Default for the -color-severity-lowest option. Importable via the
 C<:color_severity> tag.
+
+=item C<$DOCUMENT_TYPE_SCRIPT>
+
+The document type representing a script. Importable via the C<:document_types>
+tag.
+
+=item C<$DOCUMENT_TYPE_MODULE>
+
+The document type representing a module. Importable via the C<:document_types>
+tag.
+
+=item C<$DOCUMENT_TYPE_AUTO>
+
+The option value specifying that Perl::Critic is to determine document types
+based on their file names and contents. Importable via the C<:document_types>
+tag.
+
+=item C<%DOCUMENT_TYPES>
+
+Valid values for the L<perlcritic/"-document-types"> option.
 
 =back
 

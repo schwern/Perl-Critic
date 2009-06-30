@@ -17,7 +17,7 @@ use version;
 
 use Perl::Critic::Utils::DataConversion qw< dor >;
 
-use Test::More tests => 24;
+use Test::More tests => 39;
 
 #-----------------------------------------------------------------------------
 
@@ -30,6 +30,9 @@ can_ok('Perl::Critic::Document', 'new');
 can_ok('Perl::Critic::Document', 'filename');
 can_ok('Perl::Critic::Document', 'highest_explicit_perl_version');
 can_ok('Perl::Critic::Document', 'ppi_document');
+can_ok('Perl::Critic::Document', 'document_type');
+can_ok('Perl::Critic::Document', 'is_script');
+can_ok('Perl::Critic::Document', 'is_module');
 
 {
     my $code = q{'print 'Hello World';};  #Has 6 PPI::Element
@@ -86,6 +89,28 @@ can_ok('Perl::Critic::Document', 'ppi_document');
         is( $found, undef, 'find_any by empty class name');
 
     }
+
+    #-------------------------------------------------------------------------
+
+    is( $pc_doc->document_type(), 'module',
+                                q{default document_type is 'module'});
+    ok( $pc_doc->is_module(), q{document type 'module' is a module});
+    ok( ! $pc_doc->is_script(), q{document type 'module' is not a script});
+    $pc_doc->document_type(undef);
+    is( $pc_doc->document_type(), undef,
+                                'we can explicitly set document_type undef');
+    ok( $pc_doc->is_module(), 'an undefined document type is a module');
+    ok( ! $pc_doc->is_script(), 'an undefined document type is not a script');
+    $pc_doc->document_type('fubar');
+    is( $pc_doc->document_type(), 'fubar', 'document_type takes any value');
+    ok( $pc_doc->is_module(), 'unknown document types are considered modules');
+    ok( ! $pc_doc->is_script(), 'unknown document types are not scripts');
+    $pc_doc->document_type('script');
+    is( $pc_doc->document_type(), 'script',
+                                q{document_type can be set to 'script'});
+    ok( ! $pc_doc->is_module(), q{document type 'script' is not a module});
+    ok( $pc_doc->is_script(), q{document type 'script' is a script});
+
 }
 
 #-----------------------------------------------------------------------------

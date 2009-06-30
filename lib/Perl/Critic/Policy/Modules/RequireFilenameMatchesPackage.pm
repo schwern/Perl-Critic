@@ -14,7 +14,7 @@ use Readonly;
 
 use File::Spec;
 
-use Perl::Critic::Utils qw{ :severities is_script };
+use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
 our $VERSION = '1.099_002';
@@ -36,7 +36,7 @@ sub applies_to           { return 'PPI::Document'   }
 sub prepare_to_scan_document {
     my ( $self, $document ) = @_;
 
-    return not is_script($document);   # Must be a library or module.
+    return $document->is_module();   # Must be a library or module.
 }
 
 sub violates {
