@@ -516,6 +516,7 @@ sub _get_option_specification {
         files-with-violations|l
         files-without-violations|L
         document-type=s
+        script-extensions=s@
     );
 }
 

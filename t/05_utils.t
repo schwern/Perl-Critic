@@ -91,7 +91,8 @@ sub test_export {
 #-----------------------------------------------------------------------------
 
 sub count_matches { my $val = shift; return defined $val ? scalar @{$val} : 0; }
-sub make_doc { my $code = shift; return Perl::Critic::Document->new( ref $code ? $code : \$code); }
+sub make_doc { my $code = shift; return Perl::Critic::Document->new( '-source'
+        => ref $code ? $code : \$code); }
 
 sub test_find_keywords {
     my $doc = PPI::Document->new(); # Empty doc.

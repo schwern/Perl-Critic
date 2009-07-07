@@ -63,6 +63,7 @@ C<perlcritic> - Command-line interface to critique Perl source.
              [--files-with-violations | -l]
              [--files-without-violations | -L]
              [--document-type type_specification]
+             [--script-extensions file_name_extension]
              {FILE | DIRECTORY | STDIN}
 
   perlcritic --profile-proto
@@ -491,6 +492,25 @@ possible values for the type_specification are:
  script => treat the input documents as scripts;
  module => treat the input documents as modules;
  auto => decide each document type based on file name and content.
+
+=item C<--script-extensions file_name_extension>
+
+Tell C<perlcritic> to treat files whose names end in the given file name
+extension as scripts, not as modules. If a leading '.' is desired it must be
+explicitly specified, e.g.
+
+ --script-extensions .pl
+
+The matching is case-sensitive, and the option may be specified as many times
+as desired, e.g.
+
+ --script-extensions .pl --script-extensions .cgi
+
+The above can also be done by quoting the file name extensions:
+
+ --script-extensions '.pl .cgi'
+
+Files whose name ends in '.PL' will always be considered scripts.
 
 =item C<--doc PATTERN>
 

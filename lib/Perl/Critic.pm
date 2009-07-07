@@ -101,9 +101,14 @@ sub critique {  ## no critic (ArgUnpacking)
     $self = ref $self eq 'HASH' ? __PACKAGE__->new(%{ $self }) : $self;
     return if not defined $source_code;  # If no code, then nothing to do.
 
+    my $config = $self->config();
     my $doc = blessed($source_code) && $source_code->isa('Perl::Critic::Document') ?
-        $source_code : Perl::Critic::Document->new($source_code);
-    $doc->document_type($self->_compute_document_type($doc));
+        $source_code :
+        Perl::Critic::Document->new(
+            '-source' => $source_code,
+            '-document-type' => $config->document_type(),
+            '-script-extensions' => [$config->script_extensions_as_regexes()],
+        );
 
     if ( 0 == $self->policies() ) {
         Perl::Critic::Exception::Configuration::Generic->throw(
@@ -207,25 +212,6 @@ sub _futz_with_policy_order {
     my $idx = firstidx {ref $_ eq $magical_policy_name} @policy_objects;
     push @policy_objects, splice @policy_objects, $idx, 1;
     return @policy_objects;
-}
-
-#-----------------------------------------------------------------------------
-
-sub _compute_document_type {
-    my ($self, $doc) = @_;
-    my $config = $self->config();
-    my $document_type = $config->document_type();
-    return $document_type
-        if $document_type ne $DOCUMENT_TYPE_AUTO;
-    return $DOCUMENT_TYPE_SCRIPT
-        if shebang_line($doc);
-    if (defined (my $file_name = $doc->filename())) {
-        foreach my $regex ( $config->script_extensions_as_regexes() ) {
-            return $DOCUMENT_TYPE_SCRIPT
-                if $file_name =~ m/$regex/smx;
-        }
-    }
-    return $DOCUMENT_TYPE_MODULE;
 }
 
 #-----------------------------------------------------------------------------

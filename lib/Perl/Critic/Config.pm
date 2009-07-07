@@ -815,7 +815,8 @@ sub _validate_and_save_script_extensions {
 
     delete $self->{_script_extensions_as_regexes};
 
-    my $extension_list = q{ARRAY} eq ref $args_value ? $args_value :
+    my $extension_list = q{ARRAY} eq ref $args_value ?
+        [map {words_from_string($_)} @{ $args_value }] :
         $self->_profile()->options_processor()->script_extensions();
 
     my %script_extensions = hashify( @{ $extension_list } );

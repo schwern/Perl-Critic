@@ -17,7 +17,7 @@ use version;
 
 use Perl::Critic::Utils::DataConversion qw< dor >;
 
-use Test::More tests => 39;
+use Test::More tests => 30;
 
 #-----------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ can_ok('Perl::Critic::Document', 'is_module');
 {
     my $code = q{'print 'Hello World';};  #Has 6 PPI::Element
     my $ppi_doc = PPI::Document->new( \$code );
-    my $pc_doc  = Perl::Critic::Document->new( $ppi_doc );
+    my $pc_doc  = Perl::Critic::Document->new( '-source' => $ppi_doc );
     isa_ok($pc_doc, 'Perl::Critic::Document');
 
 
@@ -96,20 +96,6 @@ can_ok('Perl::Critic::Document', 'is_module');
                                 q{default document_type is 'module'});
     ok( $pc_doc->is_module(), q{document type 'module' is a module});
     ok( ! $pc_doc->is_script(), q{document type 'module' is not a script});
-    $pc_doc->document_type(undef);
-    is( $pc_doc->document_type(), undef,
-                                'we can explicitly set document_type undef');
-    ok( $pc_doc->is_module(), 'an undefined document type is a module');
-    ok( ! $pc_doc->is_script(), 'an undefined document type is not a script');
-    $pc_doc->document_type('fubar');
-    is( $pc_doc->document_type(), 'fubar', 'document_type takes any value');
-    ok( $pc_doc->is_module(), 'unknown document types are considered modules');
-    ok( ! $pc_doc->is_script(), 'unknown document types are not scripts');
-    $pc_doc->document_type('script');
-    is( $pc_doc->document_type(), 'script',
-                                q{document_type can be set to 'script'});
-    ok( ! $pc_doc->is_module(), q{document type 'script' is not a module});
-    ok( $pc_doc->is_script(), q{document type 'script' is a script});
 
 }
 
@@ -134,7 +120,7 @@ sub test_version {
 
     my $document =
         Perl::Critic::Document->new(
-            PPI::Document->new( \$code )
+            '-source' => PPI::Document->new( \$code )
         );
 
     is(

@@ -56,9 +56,20 @@ sub new {
 
 #-----------------------------------------------------------------------------
 
-sub _init {
+sub _init { ## no critic (Subroutines::RequireArgUnpacking)
 
-    my ($self, $source_code) = @_;
+    my $self = shift;
+    my %args;
+    if (@_ == 1) {
+        warnings::warnif(
+            'deprecated',
+            'Perl::Critic::Document->new($source) deprecated, use Perl::Critic::Document->new(-source => $source) instead.' ## no critic (ValuesAndExpressions::RequireInterpolationOfMetachars)
+        );
+        %args = ('-source' => shift);
+    } else {
+        %args = @_;
+    }
+    my $source_code = $args{'-source'};
 
     # $source_code can be a file name, or a reference to a
     # PPI::Document, or a reference to a scalar containing source
@@ -83,7 +94,7 @@ sub _init {
     $self->{_disabled_line_map} = {};
     $self->index_locations();
     $self->_disable_shebang_fix();
-    $self->document_type( $self->_compute_document_type() );
+    $self->{_document_type} = $self->_compute_document_type(\%args);
 
     return $self;
 }
@@ -239,9 +250,8 @@ sub suppressed_violations {
 
 #-----------------------------------------------------------------------------
 
-sub document_type { ## no critic (Subroutines::RequireArgUnpacking)
-    my $self = shift;
-    @_ and $self->{_document_type} = shift;
+sub document_type {
+    my ($self) = @_;
     return $self->{_document_type};
 }
 
@@ -249,15 +259,14 @@ sub document_type { ## no critic (Subroutines::RequireArgUnpacking)
 
 sub is_script {
     my ($self) = @_;
-    return defined $self->{_document_type} &&
-        $self->{_document_type} eq $DOCUMENT_TYPE_SCRIPT;
+    return $self->{_document_type} eq $DOCUMENT_TYPE_SCRIPT;
 }
 
 #-----------------------------------------------------------------------------
 
 sub is_module {
     my ($self) = @_;
-    return !$self->is_script();
+    return $self->{_document_type} eq $DOCUMENT_TYPE_MODULE;
 }
 
 #-----------------------------------------------------------------------------
@@ -303,16 +312,31 @@ sub _disable_shebang_fix {
 #-----------------------------------------------------------------------------
 
 sub _compute_document_type {
-    my ($self) = @_;
-    if ( shebang_line($self) ) {
-        return $DOCUMENT_TYPE_SCRIPT;
-    } elsif ( defined (my $file_name = $self->filename()) ) {
-        return $file_name =~ m/ [.] PL \z /smx ?
-            $DOCUMENT_TYPE_SCRIPT :
-            $DOCUMENT_TYPE_MODULE;
-    } else {
-        return $DOCUMENT_TYPE_MODULE;
+    my ($self, $args) = @_;
+
+    if (defined (my $doc_type = $args->{'-document-type'})) {
+        return $DOCUMENT_TYPES{$doc_type} ? $doc_type : $DOCUMENT_TYPE_MODULE
+            if $DOCUMENT_TYPE_AUTO ne $doc_type;
     }
+
+    my $file_name = $self->filename();
+    if (defined $file_name && ref $args->{'-script-extensions'} eq 'ARRAY') {
+        foreach my $ext ( @{ $args->{'-script-extensions'} } ) {
+            my $regex = ref $ext eq 'Regexp' ?
+                $ext :
+                qr{ @{[ quotemeta $ext ]} \z }smx;
+            return $DOCUMENT_TYPE_SCRIPT
+                if $file_name =~ m/$regex/smx;
+        }
+    }
+
+    return $DOCUMENT_TYPE_SCRIPT
+        if shebang_line($self);
+
+    return $DOCUMENT_TYPE_SCRIPT
+        if defined $file_name && $file_name =~ m/ [.] PL \z /smx;
+
+    return $DOCUMENT_TYPE_MODULE;
 }
 
 #-----------------------------------------------------------------------------
@@ -335,7 +359,7 @@ Perl::Critic::Document - Caching wrapper around a PPI::Document.
     use PPI::Document;
     use Perl::Critic::Document;
     my $doc = PPI::Document->new('Foo.pm');
-    $doc = Perl::Critic::Document->new($doc);
+    $doc = Perl::Critic::Document->new(-source => $doc);
     ## Then use the instance just like a PPI::Document
 
 
@@ -372,12 +396,37 @@ will go through a deprecation cycle.
 
 =over
 
-=item C<< new($source_code) >>
+=item C<< new(-source => $source_code, '-document-type' => document_type, '-script-extensions' => [script_extensions]) >>
 
 Create a new instance referencing a PPI::Document instance.  The
 C<$source_code> can be the name of a file, a reference to a scalar
 containing actual source code, or a L<PPI::Document> or
 L<PPI::Document::File>.
+
+The -document-type argument is optional, and takes one of the following
+values:
+
+'script' causes the document_type attribute to be set to 'script' thus causing
+the document to be treated as a script;
+
+'auto' or undef cause the normal document classification logic to be run (see
+-script-extensions below);
+
+'module' (or indeed any other value) causes the document_type attribute to be
+set to 'module', thus causing the document to be treated as a module.
+
+The '-script-extensions' argument is optional, and is a reference to a list of
+strings and/or regexps. The strings will be made into regexps matching the end
+of a file name, and any document whose file name matches one of the regexps
+will be considered a script.
+
+If neither -document-type nor -script-extensions determines the document type,
+the document type will be 'script' if the source has a shebang line or its
+file name (if any) matches C<< m/ [.] PL \z /smx >>, or 'module' otherwise.
+
+Be aware that the document type influences not only the value returned by the
+C<document_type()> method, but also the value returned by the C<is_script()>
+and C<is_module()> methods.
 
 =back
 
@@ -455,26 +504,26 @@ that were found in this Document but were suppressed.
 
 =item C<< document_type() >>
 
-Returns the current value of the C<document_type> attribute. Sets the value
-first if an argument is provided. Any value is accepted, but see the C<<
-is_script() >> and C<< is_module() >> methods below for consequences of
-values. When the C<Perl::Critic::Document> object is instantiated, it will be
-set to L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> if the
-document has a shebang line, or if has a file name which ends in '.PL'.
-Otherwise, it will be set to
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. This attribute
-exists to support L<Perl::Critic|Perl::Critic>.
+Returns the current value of the C<document_type> attribute. When the
+C<Perl::Critic::Document> object is instantiated, it will be set based on the
+values of the '-document-type' and '-script-extensions' arguments and/or the
+contents of the file to
+L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> or
+L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. See the C<new()>
+documentation for the details.  This attribute exists to support
+L<Perl::Critic|Perl::Critic>.
 
 =item C<< is_script() >>
 
-Returns a true value if the C<document_type> attribute is defined and equal to
+Returns a true value if the C<document_type> attribute is equal to
 L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT">. Otherwise returns
 false. This method exists to support L<Perl::Critic|Perl::Critic>. 
 
 =item C<< is_module() >>
 
-Returns the inverse of the value returned by C<< is_script() >>. This method
-exists to support L<Perl::Critic|Perl::Critic>.
+Returns a true value if the C<document_type> attribute is equal to
+L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. Otherwise returns
+false. This method exists to support L<Perl::Critic|Perl::Critic>. 
 
 =back
 
