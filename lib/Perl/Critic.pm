@@ -955,17 +955,12 @@ L<Test::Perl::Critic|Test::Perl::Critic>
 
 L<Test::Perl::Critic::Progressive|Test::Perl::Critic::Progressive>
 
-There are also a couple of distributions that will install all the
-Perl::Critic related modules known to the development team:
-
-L<Bundle::Perl::Critic|Bundle::Perl::Critic>
+There is also a distribution that will install all the Perl::Critic related
+modules known to the development team:
 
 L<Task::Perl::Critic|Task::Perl::Critic>
 
-If you want to make sure you have absolutely everything, you can use
-these:
-
-L<Bundle::Perl::Critic::IncludingOptionalDependencies|Bundle::Perl::Critic::IncludingOptionalDependencies>
+If you want to make sure you have absolutely everything, you can use this:
 
 L<Task::Perl::Critic::IncludingOptionalDependencies|Task::Perl::Critic::IncludingOptionalDependencies>
 

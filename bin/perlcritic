@@ -1003,10 +1003,9 @@ These distributions enable you to use Perl::Critic in your unit tests:
 L<Test::Perl::Critic|Test::Perl::Critic>
 L<Test::Perl::Critic::Progressive|Test::Perl::Critic::Progressive>
 
-There are also a couple of distributions that will install all the
-Perl::Critic related modules known to the development team:
+There is also a distribution that will install all the Perl::Critic related
+modules known to the development team:
 
-L<Bundle::Perl::Critic|Bundle::Perl::Critic>
 L<Task::Perl::Critic|Task::Perl::Critic>
 
 Also, the Perl Development Kit (PDK 8.0) from ActiveState includes
