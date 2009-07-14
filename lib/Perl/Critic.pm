@@ -26,7 +26,6 @@ use Perl::Critic::Violation;
 use Perl::Critic::Document;
 use Perl::Critic::Statistics;
 use Perl::Critic::Utils qw{ :characters hashify shebang_line };
-use Perl::Critic::Utils::Constants qw{ :document_type };
 
 #-----------------------------------------------------------------------------
 
@@ -106,7 +105,6 @@ sub critique {  ## no critic (ArgUnpacking)
         $source_code :
         Perl::Critic::Document->new(
             '-source' => $source_code,
-            '-document-type' => $config->document_type(),
             '-script-extensions' => [$config->script_extensions_as_regexes()],
         );
 

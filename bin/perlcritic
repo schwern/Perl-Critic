@@ -62,7 +62,6 @@ C<perlcritic> - Command-line interface to critique Perl source.
              [--color-severity-lowest color_specification]
              [--files-with-violations | -l]
              [--files-without-violations | -L]
-             [--document-type type_specification]
              [--script-extensions file_name_extension]
              {FILE | DIRECTORY | STDIN}
 
@@ -483,15 +482,6 @@ policy. Can also be specified as C<--l>.
 Display only the names of files without violations.  Use this feature
 with --single-policy to find files that do not contain violations of a
 given policy. Can also be specified as C<--L>.
-
-=item C<--document-type type_specification>
-
-Tell C<perlcritic> to treat all input documents as the given type. The
-possible values for the type_specification are:
-
- script => treat the input documents as scripts;
- module => treat the input documents as modules;
- auto => decide each document type based on file name and content.
 
 =item C<--script-extensions file_name_extension>
 

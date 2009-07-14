@@ -515,7 +515,6 @@ sub _get_option_specification {
         color-severity-lowest|colour-severity-lowest|color-severity-1|colour-severity-1=s
         files-with-violations|l
         files-without-violations|L
-        document-type=s
         script-extensions=s@
     );
 }

@@ -33,8 +33,6 @@ our @EXPORT_OK = qw{
     $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
     $DOCUMENT_TYPE_SCRIPT
     $DOCUMENT_TYPE_MODULE
-    $DOCUMENT_TYPE_AUTO
-    %DOCUMENT_TYPES
 };
 
 our %EXPORT_TAGS = (
@@ -61,8 +59,6 @@ our %EXPORT_TAGS = (
         qw{
             $DOCUMENT_TYPE_SCRIPT
             $DOCUMENT_TYPE_MODULE
-            $DOCUMENT_TYPE_AUTO
-            %DOCUMENT_TYPES
         }
     ],
 );
@@ -89,14 +85,6 @@ Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT     => $EMPTY;
 
 Readonly::Scalar our $DOCUMENT_TYPE_SCRIPT  => 'script';
 Readonly::Scalar our $DOCUMENT_TYPE_MODULE  => 'module';
-Readonly::Scalar our $DOCUMENT_TYPE_AUTO    => 'auto';
-
-Readonly::Hash our %DOCUMENT_TYPES =>
-    hashify(
-        $DOCUMENT_TYPE_SCRIPT,
-        $DOCUMENT_TYPE_MODULE,
-        $DOCUMENT_TYPE_AUTO,
-    );
 
 #-----------------------------------------------------------------------------
 
@@ -181,16 +169,6 @@ tag.
 
 The document type representing a module. Importable via the C<:document_types>
 tag.
-
-=item C<$DOCUMENT_TYPE_AUTO>
-
-The option value specifying that Perl::Critic is to determine document types
-based on their file names and contents. Importable via the C<:document_types>
-tag.
-
-=item C<%DOCUMENT_TYPES>
-
-Valid values for the L<perlcritic/"-document-types"> option.
 
 =back
 

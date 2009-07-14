@@ -58,7 +58,7 @@ my $total_policies   = scalar @names_of_policies_willing_to_work;
                 )
                 ->all_policies_enabled_or_not();
 
-    plan tests => 88 + $all_policy_count;
+    plan tests => 86 + $all_policy_count;
 }
 
 #-----------------------------------------------------------------------------
@@ -336,7 +336,6 @@ my $total_policies   = scalar @names_of_policies_willing_to_work;
         -color-severity-medium
         -color-severity-low
         -color-severity-lowest
-        -document-type
     );
 
     # Can't use IO::Interactive here because we /don't/ want to check STDIN.
@@ -374,12 +373,10 @@ my $total_policies   = scalar @names_of_policies_willing_to_work;
         $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT,
         'Undefined -color-severity-lowest'
     );
-    is( $c->document_type(), q{auto}, 'Undefined -document-type');
 
     my %zero_args = map { $_ => 0 }
         # Zero is an invalid Term::ANSIColor value.
         grep { $_ !~ m/ \A-color-severity- /smx } @switches;
-    delete $zero_args{'-document-type'};    # Zero is an invalid -document-type.
     $c = Perl::Critic::Config->new( %zero_args );
     is( $c->force(),     0,       'zero -force');
     is( $c->only(),      0,       'zero -only');
@@ -407,7 +404,6 @@ my $total_policies   = scalar @names_of_policies_willing_to_work;
     is( $c->color_severity_medium(), $EMPTY, 'empty -color-severity-medium');
     is( $c->color_severity_low(),    $EMPTY, 'empty -color-severity-low');
     is( $c->color_severity_lowest(), $EMPTY, 'empty -color-severity-lowest');
-    is( $c->document_type(), q{auto}, 'empty -document-type');
 }
 
 #-----------------------------------------------------------------------------

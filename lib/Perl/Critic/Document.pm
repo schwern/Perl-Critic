@@ -314,11 +314,6 @@ sub _disable_shebang_fix {
 sub _compute_document_type {
     my ($self, $args) = @_;
 
-    if (defined (my $doc_type = $args->{'-document-type'})) {
-        return $DOCUMENT_TYPES{$doc_type} ? $doc_type : $DOCUMENT_TYPE_MODULE
-            if $DOCUMENT_TYPE_AUTO ne $doc_type;
-    }
-
     my $file_name = $self->filename();
     if (defined $file_name && ref $args->{'-script-extensions'} eq 'ARRAY') {
         foreach my $ext ( @{ $args->{'-script-extensions'} } ) {
@@ -396,33 +391,22 @@ will go through a deprecation cycle.
 
 =over
 
-=item C<< new(-source => $source_code, '-document-type' => document_type, '-script-extensions' => [script_extensions]) >>
+=item C<< new(-source => $source_code, '-script-extensions' => [script_extensions]) >>
 
 Create a new instance referencing a PPI::Document instance.  The
 C<$source_code> can be the name of a file, a reference to a scalar
 containing actual source code, or a L<PPI::Document> or
 L<PPI::Document::File>.
 
-The -document-type argument is optional, and takes one of the following
-values:
-
-'script' causes the document_type attribute to be set to 'script' thus causing
-the document to be treated as a script;
-
-'auto' or undef cause the normal document classification logic to be run (see
--script-extensions below);
-
-'module' (or indeed any other value) causes the document_type attribute to be
-set to 'module', thus causing the document to be treated as a module.
-
 The '-script-extensions' argument is optional, and is a reference to a list of
 strings and/or regexps. The strings will be made into regexps matching the end
 of a file name, and any document whose file name matches one of the regexps
 will be considered a script.
 
-If neither -document-type nor -script-extensions determines the document type,
-the document type will be 'script' if the source has a shebang line or its
-file name (if any) matches C<< m/ [.] PL \z /smx >>, or 'module' otherwise.
+If -script-extensions is not specified, or if it does not determine the
+document type, the document type will be 'script' if the source has a shebang
+line or its file name (if any) matches C<< m/ [.] PL \z /smx >>, or 'module'
+otherwise.
 
 Be aware that the document type influences not only the value returned by the
 C<document_type()> method, but also the value returned by the C<is_script()>
@@ -506,9 +490,8 @@ that were found in this Document but were suppressed.
 
 Returns the current value of the C<document_type> attribute. When the
 C<Perl::Critic::Document> object is instantiated, it will be set based on the
-values of the '-document-type' and '-script-extensions' arguments and/or the
-contents of the file to
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> or
+value '-script-extensions' argument (if any) and/or the contents of the file
+to L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> or
 L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. See the C<new()>
 documentation for the details.  This attribute exists to support
 L<Perl::Critic|Perl::Critic>.

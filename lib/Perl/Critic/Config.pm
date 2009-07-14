@@ -28,7 +28,7 @@ use Perl::Critic::Utils qw{
     :booleans :characters :severities :internal_lookup :classification
     :data_conversion
 };
-use Perl::Critic::Utils::Constants qw{ :profile_strictness :document_type };
+use Perl::Critic::Utils::Constants qw{ :profile_strictness };
 use Perl::Critic::Utils::DataConversion qw{ boolean_to_number dor };
 
 #-----------------------------------------------------------------------------
@@ -145,7 +145,6 @@ sub _init {
     $self->_validate_and_save_top($args{-top}, $errors);
     $self->_validate_and_save_theme($args{-theme}, $errors);
     $self->_validate_and_save_pager($args{-pager}, $errors);
-    $self->_validate_and_save_document_type($args{'-document-type'}, $errors);
     $self->_validate_and_save_script_extensions(
         $args{'-script-extensions'}, $errors);
 
@@ -774,42 +773,6 @@ sub _validate_and_save_color_severity {
 
 #-----------------------------------------------------------------------------
 
-sub _validate_and_save_document_type {
-    my ($self, $args_value, $errors) = @_;
-
-    my $option_name;
-    my $source;
-    my $document_type;
-
-    if (defined $args_value and $args_value ne $EMPTY) {
-        $option_name = '-document-type';
-        $document_type = $args_value;
-    } else {
-        $option_name = 'document-type';
-        # Note that if we grow a .perlcriticrc item for this, we will need to
-        # retrieve $document_type and $source from the options processor.
-        $document_type = $DOCUMENT_TYPE_AUTO;
-    }
-
-    if ( $DOCUMENT_TYPES{$document_type} ) {
-        $self->{_document_type} = $document_type;
-    }
-    else {
-        $errors->add_exception(
-            $self->_new_global_value_exception(
-                option_name     => $option_name,
-                option_value    => $document_type,
-                source          => $source,
-                message_suffix  => q{is not valid.},
-            )
-        );
-    }
-
-    return;
-}
-
-#-----------------------------------------------------------------------------
-
 sub _validate_and_save_script_extensions {
     my ($self, $args_value, $errors) = @_;
 
@@ -979,13 +942,6 @@ sub color_severity_low {
 sub color_severity_lowest {
     my ($self) = @_;
     return $self->{_color_severity_lowest};
-}
-
-#-----------------------------------------------------------------------------
-
-sub document_type {
-    my ($self) = @_;
-    return $self->{_document_type};
 }
 
 #-----------------------------------------------------------------------------
@@ -1171,14 +1127,6 @@ L<perlcritic|perlcritic>. It can also be specified as
 B<-colour-severity-lowest>, B<-color-severity-1>, or
 B<-colour-severity-1>.
 
-B<-document-type> is an enumerated value representing the type of the input
-document(s). Possible values are
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT">,
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">, or
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_AUTO">. The latter is the
-default for the command qualifier, but will not appear as an actual
-L<Perl::Critic::Document|Perl::Critic::Document> type.
-
 B<-script-extensions> is a reference to a list of file name extensions which
 are considered to identify a script. The leading dot must be included (e.g.
 '.PL').
@@ -1315,10 +1263,6 @@ Config.
 
 Returns the value of the C<-color-severity-lowest> attribute for this
 Config.
-
-=item C< document_type() >
-
-Returns the value of the C<-document-type> attribute for this Config.
 
 =item C< script_extensions() >
 
