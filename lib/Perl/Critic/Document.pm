@@ -418,7 +418,7 @@ supply a hypothetical filename for that code (otherwise, the C<filename()>
 method would return undefined).
 
 If C<$source_code> is a L<PPI::Document::File> or a path to a file, then the
--as-filename option will cause this Perl::Critic::Document to masquarade as
+-as-filename option will cause this Perl::Critic::Document to masquerade as
 the specified file, even the though the source code actually came from another
 file.
 
