@@ -60,16 +60,15 @@ sub _init { ## no critic (Subroutines::RequireArgUnpacking)
 
     my $self = shift;
     my %args;
+
     if (@_ == 1) {
-        warnings::warnif(
-            'deprecated',
-            'Perl::Critic::Document->new($source) deprecated, use Perl::Critic::Document->new(-source => $source) instead.' ## no critic (ValuesAndExpressions::RequireInterpolationOfMetachars)
-        );
-        %args = ('-source' => shift);
+        _warn_about_deprected_constructor();
+        %args = (-source => shift);
     } else {
         %args = @_;
     }
-    my $source_code = $args{'-source'};
+
+    my $source_code = $args{-source};
 
     # $source_code can be a file name, or a reference to a
     # PPI::Document, or a reference to a scalar containing source
@@ -94,6 +93,7 @@ sub _init { ## no critic (Subroutines::RequireArgUnpacking)
     $self->{_disabled_line_map} = {};
     $self->index_locations();
     $self->_disable_shebang_fix();
+    $self->{_as_filename} = $args{'-as-filename'};
     $self->{_document_type} = $self->_compute_document_type(\%args);
 
     return $self;
@@ -125,6 +125,8 @@ sub isa {
 
 sub filename {
     my ($self) = @_;
+    return $self->{_as_filename} if $self->{_as_filename};
+
     my $doc = $self->{_doc};
     return $doc->can('filename') ? $doc->filename() : undef;
 }
@@ -336,6 +338,15 @@ sub _compute_document_type {
 
 #-----------------------------------------------------------------------------
 
+sub _warn_about_deprecated_constructor {
+
+    warnings::warnif( 'deprecated', 'Perl::Critic::Document->new($source) deprecated, use Perl::Critic::Document->new(-source => $source) instead.' ); ## no critic (RequireInterpolationOfMetachars)
+        return;
+}
+
+
+#-----------------------------------------------------------------------------
+
 1;
 
 __END__
@@ -391,17 +402,35 @@ will go through a deprecation cycle.
 
 =over
 
-=item C<< new(-source => $source_code, '-script-extensions' => [script_extensions]) >>
+=item C<< new(-source => $source_code, '-as-filename' => $filename '-script-extensions' => [script_extensions]) >>
 
 Create a new instance referencing a PPI::Document instance.  The
-C<$source_code> can be the name of a file, a reference to a scalar
-containing actual source code, or a L<PPI::Document> or
+C<$source_code> is a required argument and it can be the name of a file, a
+reference to a scalar containing actual source code, or a L<PPI::Document> or
 L<PPI::Document::File>.
 
-The '-script-extensions' argument is optional, and is a reference to a list of
-strings and/or regexps. The strings will be made into regexps matching the end
-of a file name, and any document whose file name matches one of the regexps
-will be considered a script.
+The following arguments are optional:
+
+B<-as-filename> is a string that is used for the filename of the
+C<$source_code>.  For exaple, if the C<$souce_code> is a scalar reference to a
+string of source code or a L<PPI::Document>, then you can use -as-filename to
+supply a hypothetical filename for that code (otherwise, the C<filename()>
+method would return undefined).
+
+If C<$source_code> is a L<PPI::Document::File> or a path to a file, then the
+-as-filename option will cause this Perl::Critic::Document to masquarade as
+the specified file, even the though the source code actually came from another
+file.
+
+In other words, the -as-filename option will always cause the C<filename()>
+method to return the specified C<$filename> for this Perl::Critic::Document.  Note
+that the filename specified by -as-filename will also affect whether the file
+is judged to be a script or module.
+
+B<-script-extensions> is a reference to a list of strings and/or regexps. The
+strings will be made into regexps matching the end of a file name, and any
+document whose file name matches one of the regexps will be considered a
+script.
 
 If -script-extensions is not specified, or if it does not determine the
 document type, the document type will be 'script' if the source has a shebang
