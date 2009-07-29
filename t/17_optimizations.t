@@ -20,7 +20,7 @@ our $VERSION = '1.099_002';
 
 #-----------------------------------------------------------------------------
 
-my $need_ppi_version = '1.203';
+my $need_ppi_version = '1.204_06';
 plan( skip_all => "Optimizations only work with PPI version $need_ppi_version.")
   if $PPI::Document::VERSION ne $need_ppi_version;
 

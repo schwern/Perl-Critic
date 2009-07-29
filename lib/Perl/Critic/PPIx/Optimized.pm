@@ -24,7 +24,7 @@ use vars qw($OPTIMIZATIONS_WERE_LOADED);
 BEGIN {
 
     require PPI;
-    return if $PPI::VERSION ne '1.203';
+    return if $PPI::VERSION ne '1.204_06';
 
     require Perl::Critic::PPIx::Optimized::Caches;
     require Perl::Critic::PPIx::Optimized::Document;
