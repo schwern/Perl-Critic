@@ -412,7 +412,7 @@ L<PPI::Document::File>.
 The following arguments are optional:
 
 B<-as-filename> is a string that is used for the filename of the
-C<$source_code>.  For exaple, if the C<$souce_code> is a scalar reference to a
+C<$source_code>.  For example, if the C<$souce_code> is a scalar reference to a
 string of source code or a L<PPI::Document>, then you can use -as-filename to
 supply a hypothetical filename for that code (otherwise, the C<filename()>
 method would return undefined).
