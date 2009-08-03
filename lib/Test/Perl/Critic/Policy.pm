@@ -16,7 +16,7 @@ use warnings;
 
 use Carp qw< croak confess >;
 use English qw< -no_match_vars >;
-use List::MoreUtils qw< all any >;
+use List::MoreUtils qw< all none >;
 
 use Test::Builder qw<>;
 use Test::More;
@@ -97,15 +97,12 @@ sub all_policies_ok {
 
 sub _validate_wanted_policy_names {
     my ($wanted_policies, $subtests_with_extras) = @_;
+    return 1 if not $wanted_policies;
     my @all_testable_policies = keys %{ $subtests_with_extras };
     my @wanted_policies = @{ $wanted_policies };
 
 
-    # Note: Some versions of none() return true when the list is empty, and
-    # some versions return false.  To avoid this inconsistency, we prefer to
-    # use "not any {} @list" since it behaves the same in all versions.
-
-    my @invalid = grep {my $p = $_; not any {$_ =~ $p} @all_testable_policies}  @wanted_policies;
+    my @invalid = grep {my $p = $_; none {$_ =~ $p} @all_testable_policies}  @wanted_policies;
     croak( q{No tests found for policies matching: } . join q{, }, @invalid ) if @invalid;
     return 1;
 }
@@ -114,6 +111,7 @@ sub _validate_wanted_policy_names {
 
 sub _filter_unwanted_subtests {
     my ($wanted_policies, $subtests_with_extras) = @_;
+    return 1 if not $wanted_policies;
     my @all_testable_policies = keys %{ $subtests_with_extras };
     my @wanted_policies = @{ $wanted_policies };
 
