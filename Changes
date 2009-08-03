@@ -16,7 +16,10 @@ Next release, whenever it is:
         logic, and is the default.
     * Perl::Critic::Violation now takes #line directives into account in the
       %F, %f, and %l formats.  You can get the old values via the new %G, %g,
-      %and %L formats.
+      and %L formats.
+    * The framework that we use to test Perl::Critic has been packaged into
+      a convenient module that you can use to test your own Policies.  See
+      Test::Perl::Critic::Policy for details.
 
 [1.102] Released on 2009-08-03
 
