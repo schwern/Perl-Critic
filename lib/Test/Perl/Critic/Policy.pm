@@ -406,6 +406,8 @@ Allow us to specify the nature of the failures, and which one.  If there are
 Consolidate code from L<Perl::Critic::TestUtils> and possibly deprecate some
 functions there.
 
+Write unit tests for this module.
+
 Test that we have a t/*/*.run for each lib/*/*.pm
 
 =head1 AUTHOR
