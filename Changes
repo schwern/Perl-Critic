@@ -21,6 +21,10 @@ Next release, whenever it is:
       a convenient module that you can use to test your own Policies.  See
       Test::Perl::Critic::Policy for details.
 
+    Policy Changes:
+    * ValuesAndExpressions::RequireInterpolationOfMetachars now allows sigils
+      in the arguments to "use vars".  Contributed by Kevin Ryde, RT #47318.
+
 [1.103] Released on 2009-08-03
 
     Fix configure_requires prerequisite on Module::Build 0.34_02.
