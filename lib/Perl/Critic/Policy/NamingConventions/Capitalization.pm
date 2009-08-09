@@ -32,7 +32,7 @@ use Perl::Critic::PPIx::Utilities::Statement qw<
 
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.099_002';
+our $VERSION = '1.103';
 
 #-----------------------------------------------------------------------------
 
