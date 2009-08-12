@@ -17,7 +17,7 @@ use version;
 
 use Perl::Critic::Utils::DataConversion qw< dor >;
 
-use Test::More tests => 36;
+use Test::More tests => 33;
 
 #-----------------------------------------------------------------------------
 
@@ -95,22 +95,11 @@ can_ok('Perl::Critic::Document', 'is_module');
 
     #-------------------------------------------------------------------------
 
-    is( $pc_doc->document_type(), 'module', q{default document_type is 'module'});
+    is( $pc_doc->document_type(), 'module',
+                                q{default document_type is 'module'});
     ok( $pc_doc->is_module(), q{document type 'module' is a module});
     ok( ! $pc_doc->is_script(), q{document type 'module' is not a script});
 
-    #-------------------------------------------------------------------------
-
-    is($pc_doc->filename(), undef, q{default filename is undefined});
-
-    my $named_pc_doc = Perl::Critic::Document->new(
-        '-source' => $ppi_doc,
-        '-as-filename' => 'foo.pl',
-        '-script-extensions' => ['.pl']
-    );
-
-    is($named_pc_doc->filename(), 'foo.pl', q{using user-specified filename});
-    ok($named_pc_doc->is_script(), q{user-specified filename is a script});
 }
 
 #-----------------------------------------------------------------------------
