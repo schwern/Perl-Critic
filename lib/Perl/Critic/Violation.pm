@@ -23,20 +23,13 @@ use String::Format qw< stringf >;
 use overload ( q{""} => 'to_string', cmp => '_compare' );
 
 use Perl::Critic::Utils qw< :characters :internal_lookup >;
-use Perl::Critic::Utils::POD qw<
-    get_pod_section_for_module
-    trim_pod_section
->;
+use Perl::Critic::Utils::Constants qw< :location >;
+use Perl::Critic::Utils::POD qw< get_pod_section_for_module trim_pod_section >;
 use Perl::Critic::Exception::Fatal::Internal qw< throw_internal >;
+
 
 our $VERSION = '1.103';
 
-
-Readonly::Scalar my $LOCATION_LINE_NUMBER               => 0;
-Readonly::Scalar my $LOCATION_COLUMN_NUMBER             => 1;
-Readonly::Scalar my $LOCATION_VISUAL_COLUMN_NUMBER      => 2;
-Readonly::Scalar my $LOCATION_LOGICAL_LINE_NUMBER       => 3;
-Readonly::Scalar my $LOCATION_LOGICAL_FILENAME          => 4;
 
 
 # Class variables...

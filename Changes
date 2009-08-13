@@ -27,6 +27,9 @@ Next release, whenever it is:
     * ValuesAndExpressions::RequireInterpolationOfMetachars now properly
       ignores email addesses, if you have Email::Address installed.  Inspired
       by the Kevin Ryde contribution in RT #47318.
+    * Modules::RequireFilenameMatchesPackage now respects logical filenames
+      defined by the "#line" directives.  This allows the Policy to work
+      properly with IDEs and code generators.
 
 [1.103] Released on 2009-08-03
 
