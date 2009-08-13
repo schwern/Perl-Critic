@@ -265,6 +265,8 @@ __END__
 
 =pod
 
+=for stopwords subtest subtests RCS
+
 =head1 NAME
 
 Test::Perl::Critic::Policy - A framework for testing your custom Policies
@@ -285,7 +287,7 @@ all_policies_ok( -policies => ['Some::Policy', 'Another::Policy'] );
 =head1 DESCRIPTION
 
 This module provides a framework for function-testing your custom
-L<Perl::Critic::Policy> modules.  Policy testing ususally involves feeding it
+L<Perl::Critic::Policy> modules.  Policy testing usually involves feeding it
 a string of Perl code and checking its behavior.  In the old days, those
 strings of Perl code were mixed directly in the test script.  That sucked.
 
