@@ -14,8 +14,7 @@ use Readonly;
 
 use File::Spec;
 
-use Perl::Critic::Utils qw{ :severities };
-use Perl::Critic::Utils::Constants qw{ :location };
+use Perl::Critic::Utils qw{ :characters :severities is_script };
 use base 'Perl::Critic::Policy';
 
 our $VERSION = '1.103';
@@ -53,14 +52,14 @@ sub violates {
 
 
     # 'lib/Foo/Bar.pm' -> ('lib', 'Foo', 'Bar')
-    my $logical_filename = $pkg_node->location()->[$LOCATION_LOGICAL_FILENAME];
-    my $filename = $logical_filename || $doc->filename();
+    my $filename = $pkg_node->logical_filename() || $doc->filename();
     return if not $filename;
 
     my @path = File::Spec->splitpath($filename);
     $filename = $path[2];
-    $filename =~ s/[.]\w+\z//xms;
-    my @path_parts = grep {$_ ne q{}} File::Spec->splitdir($path[1]), $filename;
+    $filename =~ s/ [.] \w+ \z //xms;
+    my @path_parts =
+        grep {$_ ne $EMPTY} File::Spec->splitdir($path[1]), $filename;
 
 
     # To succeed, at least the lastmost must match

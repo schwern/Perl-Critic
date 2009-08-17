@@ -33,14 +33,7 @@ our @EXPORT_OK = qw{
     $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
     $DOCUMENT_TYPE_SCRIPT
     $DOCUMENT_TYPE_MODULE
-    $LOCATION_LINE_NUMBER
-    $LOCATION_COLUMN_NUMBER
-    $LOCATION_VISUAL_COLUMN_NUMBER
-    $LOCATION_LOGICAL_LINE_NUMBER
-    $LOCATION_LOGICAL_FILENAME
 };
-
-#-----------------------------------------------------------------------------
 
 our %EXPORT_TAGS = (
     all => \@EXPORT_OK,
@@ -68,15 +61,6 @@ our %EXPORT_TAGS = (
             $DOCUMENT_TYPE_MODULE
         }
     ],
-    location => [
-        qw{
-            $LOCATION_LINE_NUMBER
-            $LOCATION_COLUMN_NUMBER
-            $LOCATION_VISUAL_COLUMN_NUMBER
-            $LOCATION_LOGICAL_LINE_NUMBER
-            $LOCATION_LOGICAL_FILENAME
-        }
-    ],
 );
 
 #-----------------------------------------------------------------------------
@@ -101,12 +85,6 @@ Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT     => $EMPTY;
 
 Readonly::Scalar our $DOCUMENT_TYPE_SCRIPT  => 'script';
 Readonly::Scalar our $DOCUMENT_TYPE_MODULE  => 'module';
-
-Readonly::Scalar our $LOCATION_LINE_NUMBER               => 0;
-Readonly::Scalar our $LOCATION_COLUMN_NUMBER             => 1;
-Readonly::Scalar our $LOCATION_VISUAL_COLUMN_NUMBER      => 2;
-Readonly::Scalar our $LOCATION_LOGICAL_LINE_NUMBER       => 3;
-Readonly::Scalar our $LOCATION_LOGICAL_FILENAME          => 4;
 
 #-----------------------------------------------------------------------------
 
@@ -191,19 +169,6 @@ tag.
 
 The document type representing a module. Importable via the C<:document_type>
 tag.
-
-=item C<$LOCATION_LINE_NUMBER>
-
-=item C<$LOCATION_COLUMN_NUMBER>
-
-=item C<$LOCATION_VISUAL_COLUMN_NUMBER>
-
-=item C<$LOCATION_LOGICAL_LINE_NUMBER>
-
-=item C<$LOCATION_LOGICAL_FILENAME>
-
-Index positions for the various values returned from C<< PPI::Element->location() >>.
-Importable via the C<:location> tag.
 
 =back
 
