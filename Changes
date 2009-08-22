@@ -34,7 +34,7 @@ Next release, whenever it is:
     Build Fixes:
     * There wasn't a specific version given for the List::MoreUtils dependency
       and we're using features that weren't avialable until 0.19.  So, we now
-      require version 0.19.  Noticed by ohn J. Trammell.  RT #48917.
+      require version 0.19.  Noticed by John J. Trammell.  RT #48917.
 
 [1.103] Released on 2009-08-03
 
