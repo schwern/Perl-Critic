@@ -27,7 +27,7 @@ my %args = @ARGV ? ( -policies => [ @ARGV ] ) : ();
 all_policies_ok(%args);
 
 #-----------------------------------------------------------------------------
-# ensure we run true if this test is loaded by
+# ensure we return true if this test is loaded by
 # 20_policies.t_without_optional_dependencies.t
 
 1;

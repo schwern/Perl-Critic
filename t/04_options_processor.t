@@ -205,7 +205,7 @@ our $VERSION = '1.103';
 
 #-----------------------------------------------------------------------------
 
-# ensure we run true if this test is loaded by
+# ensure we return true if this test is loaded by
 # t/04_defaults.t_without_optional_dependencies.t
 1;
 
