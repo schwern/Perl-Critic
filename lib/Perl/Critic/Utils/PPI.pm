@@ -11,14 +11,13 @@ use 5.006001;
 use strict;
 use warnings;
 
-use Carp;
 use Readonly;
-use English qw(-no_match_vars);
+
 use Scalar::Util qw< blessed readonly >;
 
 use base 'Exporter';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -33,7 +32,6 @@ our @EXPORT_OK = qw(
     get_constant_name_element_from_declaring_statement
     get_next_element_in_same_simple_statement
     get_previous_module_used_on_same_line
-    class_ancestry
 );
 
 our %EXPORT_TAGS = (
@@ -238,19 +236,6 @@ sub get_previous_module_used_on_same_line {
 
 #-----------------------------------------------------------------------------
 
-sub class_ancestry {
-    my ($class) = @_;
-    my $classes = [ $class ];
-    eval "require $class" or confess $EVAL_ERROR;
-    for ( my $i = 0; $i < @{$classes}; $i++ ) {      ## no critic (ProhibitCStyleForLoops)
-        no strict 'refs';                            ## no critic (ProhibitNoStrict)
-        push @{$classes}, @{"$classes->[$i]::ISA"};
-    }
-    return $classes;
-}
-
-#-----------------------------------------------------------------------------
-
 1;
 
 __END__
@@ -408,14 +393,6 @@ given the L<PPI::Token::Symbol> instance for C<$VERSION>, this will return
 If the given element is in a C<use> or <require>, the return is from the
 previous C<use> or C<require> on the line, if any.
 
-
-=item C<class_ancestry( $class )>
-
-Given then name of a L<PPI::Element|PPI::Element> subclass, returns a
-reference to an array containing C<$class> and all the superclasses of
-C<$class>.  The returned list is in no particular order.  Be advised that
-C<$class> and all of its superclasses will be C<require>d as a side effect of
-calling this.
 
 =back
 

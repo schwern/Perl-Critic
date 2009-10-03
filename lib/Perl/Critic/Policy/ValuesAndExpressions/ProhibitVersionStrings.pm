@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -32,15 +32,22 @@ sub applies_to           { return 'PPI::Statement::Include' }
 #-----------------------------------------------------------------------------
 
 sub violates {
-    my ( $self, $elem, undef ) = @_;
+    my ($self, $elem, undef) = @_;
 
-    my $module = $elem->module() or return;
-    return if $module eq 'lib';
+    my $version;
 
-    my $version = $elem->module_version() or return;
+    if ( my $module = $elem->module() ) {
+        return if $module eq 'lib';
+
+        $version = $elem->module_version();
+    } else {
+        $version = $elem->schild(1);
+    }
+
+    return if not defined $version;
     return if not $version->isa('PPI::Token::Number::Version');
 
-    return $self->violation( $DESC, $EXPL, $elem );
+    return $self->violation($DESC, $EXPL, $elem);
 }
 
 1;
@@ -83,11 +90,11 @@ This Policy is not configurable except for the standard options.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

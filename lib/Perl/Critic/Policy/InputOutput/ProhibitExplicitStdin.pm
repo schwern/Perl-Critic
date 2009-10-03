@@ -16,7 +16,7 @@ use List::MoreUtils qw(any);
 use Perl::Critic::Utils qw{ :severities :classification &parse_arg_list };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ sub applies_to           { return 'PPI::Token::QuoteLike::Readline' }
 sub violates {
     my ( $self, $elem, undef ) = @_;
 
-    return if $elem->content() ne '<STDIN>';
+    return if $elem ne '<STDIN>';
     return $self->violation( $DESC, $EXPL, $elem );
 }
 

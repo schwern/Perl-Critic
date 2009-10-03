@@ -1,29 +1,42 @@
-Release after next:
+Next release, whenever it is:
 
     New Features:
-    * There is a new global configuration item, 'script-extensions', which
+    * There is a new global configuration item, 'program-extensions', which
       configures Perl::Critic's idea of which file name extensions represent
-      scripts. The desired extensions are specified as a space-separated list,
+      programs. The desired extensions are specified as a space-separated list,
       with leading '.' on each if that is desired. Files whose names end in
-      '.PL' will always be considered scripts. This can be overridden by
-      command option --script-exctensions, which can be specified multiple
+      '.PL' will always be considered programs. This can be overridden by
+      command option --programs-extensions, which can be specified multiple
       times.
-    * Perlcritic has a new command option, --document-type, which overrides
-      perlcritic's document type logic. This takes one of three values:
-      - 'script' causes all documents to be considered scripts;
-      - 'module' causes all documents to be considered modules;
-      - 'auto' is an explicit request to use perlcritic's normal document type
-        logic, and is the default.
     * The framework that we use to test Perl::Critic has been packaged into
       a convenient module that you can use to test your own Policies.  See
       Test::Perl::Critic::Policy for details.
 
-    Policy Changes:
-    * NamingConventions::Capitalization got confused when a single "use
-      constant" declared multiple constants.  Reported by Kevin Ryde,
-      RT #44987.
+    Bug Fixes:
+    * The "## no critic" annotations now respect the #line directives.
 
-Next release, whenever it is:
+    Other Changes:
+    * The PolicySummary.pod file is now generated when the distribution
+      is created, rather than when you install it.  This ensures the file
+      will be available on http://search.cpan.org.  Thanks to Bear Longyear
+      for brigning this to our attention.
+
+[1.105] Released on 2009-09-07
+
+    Bug Fixes:
+    * Variables::ProhibitPunctuationVars would complain about "%-" appearing
+      anywhere in a string.  RT #49016
+
+    Policy Changes:
+    * InputOutput::RequireCheckedSyscalls now complains about unchecked "say"
+      by default.  RT #37487
+
+[1.104] Released on 2009-08-23
+
+    This release is dedicated to Tom Wyant in appreciation of the amount of
+    effort he put into the enhancements and bug fixes in this release, for
+    having the patience to wait for the amount of time that it took to get
+    them out, and for overall awesomeness.  Thank you, Tom.
 
     New Policies:
       Objects::ProhibitIndirectSyntax
@@ -33,7 +46,7 @@ Next release, whenever it is:
     New Optional Requirement:
     * Email::Address, if you want
       ValuesAndExpressions::ProhibitInterpolationOfLiterals to properly ignore
-      emaila addresses.
+      email addresses.
 
     New Features:
     * Perlcritic will list the names of files with violations if given the
@@ -73,8 +86,6 @@ Next release, whenever it is:
     * RegularExpressions::ProhibitUnusedCapture now considers the body of
       while loops and not just their condition.  Reported by EDAVIS, RT
       #38942.
-    * ValuesAndExpressions::ProhibitInterpolationOfLiterals can now properly
-      ignore email addresses if you have Email::Address installed.
     * ValuesAndExpressions::ProhibitVersionStrings was getting confused by
       comments.  Reported by Kevin Ryde,  RT #44986.
     * ValuesAndExpressions::RequireInterpolationOfMetachars now allows sigils

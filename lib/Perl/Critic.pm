@@ -29,7 +29,7 @@ use Perl::Critic::Utils qw{ :characters hashify shebang_line };
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 Readonly::Array our @EXPORT_OK => qw(critique);
 
@@ -101,12 +101,13 @@ sub critique {  ## no critic (ArgUnpacking)
     return if not defined $source_code;  # If no code, then nothing to do.
 
     my $config = $self->config();
-    my $doc = blessed($source_code) && $source_code->isa('Perl::Critic::Document') ?
-        $source_code :
-        Perl::Critic::Document->new(
-            '-source' => $source_code,
-            '-script-extensions' => [$config->script_extensions_as_regexes()],
-        );
+    my $doc =
+        blessed($source_code) && $source_code->isa('Perl::Critic::Document')
+            ? $source_code
+            : Perl::Critic::Document->new(
+                '-source' => $source_code,
+                '-program-extensions' => [$config->program_extensions_as_regexes()],
+            );
 
     if ( 0 == $self->policies() ) {
         Perl::Critic::Exception::Configuration::Generic->throw(
@@ -255,7 +256,7 @@ Policy modules that suit your own tastes.
 For a command-line interface to Perl::Critic, see the documentation
 for L<perlcritic|perlcritic>.  If you want to integrate Perl::Critic
 with your build process, L<Test::Perl::Critic|Test::Perl::Critic>
-provides an interface that is suitable for test scripts.  Also,
+provides an interface that is suitable for test programs.  Also,
 L<Test::Perl::Critic::Progressive|Test::Perl::Critic::Progressive> is
 useful for gradually applying coding standards to legacy code.  For
 the ultimate convenience (at the expense of some flexibility) see the
@@ -686,7 +687,7 @@ Each Policy is defined with one or more "themes".  Themes can be used
 to create arbitrary groups of Policies.  They are intended to provide
 an alternative mechanism for selecting your preferred set of Policies.
 For example, you may wish disable a certain subset of Policies when
-analyzing test scripts.  Conversely, you may wish to enable only a
+analyzing test programs.  Conversely, you may wish to enable only a
 specific subset of Policies when analyzing modules.
 
 The Policies that ship with Perl::Critic have been broken into the
@@ -703,7 +704,7 @@ needs.
     cosmetic          Policies that only have a superficial effect
     complexity        Policies that specificaly relate to code complexity
     security          Policies that relate to security issues
-    tests             Policies that are specific to test scripts
+    tests             Policies that are specific to test programs
 
 
 Any Policy may fit into multiple themes.  Say C<"perlcritic -list"> to
@@ -842,7 +843,7 @@ this distribution for a step-by-step demonstration of how to create
 new Policy modules.
 
 If you develop any new Policy modules, feel free to send them to C<<
-<thaljef@cpan.org> >> and I'll be happy to put them into the
+<jeff@imaginative-software.com> >> and I'll be happy to put them into the
 Perl::Critic distribution.  Or if you would like to work on the
 Perl::Critic project directly, check out our repository at
 L<http://perlcritic.tigris.org>.  To subscribe to our mailing list,
@@ -854,7 +855,7 @@ Policies to enforce your local guidelines.  Or if your code base is
 prone to a particular defect pattern, we can design Policies that will
 help you catch those costly defects B<before> they go into production.
 To discuss your needs with the Perl::Critic team, just contact C<<
-<thaljef@cpan.org> >>.
+<jeff@imaginative-software.com> >>.
 
 
 =head1 PREREQUISITES
@@ -921,7 +922,7 @@ L<Text::ParseWords|Text::ParseWords>
 You are encouraged to subscribe to the mailing list; send a message to
 L<mailto:users-subscribe@perlcritic.tigris.org>.  See also the archives at
 L<http://perlcritic.tigris.org/servlets/SummarizeList?listName=users>.
-You can also contact the author at C<< <thaljef@cpan.org> >>.
+You can also contact the author at C<< <jeff@imaginative-software.com> >>.
 
 At least one member of the development team has started hanging around
 in L<irc://irc.perl.org/#perlcritic>.
@@ -998,12 +999,12 @@ L<http://www.perlfoundation.org/april_1_2007_new_grant_awards>
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

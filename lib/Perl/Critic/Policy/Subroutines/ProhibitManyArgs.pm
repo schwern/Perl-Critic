@@ -21,7 +21,7 @@ use Carp;
 use Perl::Critic::Utils qw{ :booleans :severities split_nodes_on_comma };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ sub _count_args {
     my $statement = shift @statements;
     my @elements = $statement->schildren();
     my $operand = pop @elements;
-    while ($operand && $operand->isa('PPI::Token::Structure') && q{;} eq $operand->content()) {
+    while ($operand && $operand->isa('PPI::Token::Structure') && q{;} eq $operand) {
        $operand = pop @elements;
     }
     return 0 if !$operand;
@@ -95,9 +95,9 @@ sub _count_args {
     return 0 if !$operator->isa('PPI::Token::Operator');
     return 0 if q{=} ne $operator;
 
-    if ($operand->isa('PPI::Token::Magic') && $AT_ARG eq $operand->content()) {
+    if ($operand->isa('PPI::Token::Magic') && $AT_ARG eq $operand) {
        return _count_list_elements(@elements);
-    } elsif ($operand->isa('PPI::Token::Word') && 'shift' eq $operand->content()) {
+    } elsif ($operand->isa('PPI::Token::Word') && 'shift' eq $operand) {
        return 1 + _count_args(@statements);
     }
 

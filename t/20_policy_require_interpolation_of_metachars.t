@@ -17,12 +17,12 @@ use Test::More;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
-eval 'use Email::Address; 1'
-    or plan skip_all => 'Email::Address required for ValuesAndExpressions::RequireInterpolationOfMetachars to ignore email addresses.';
+eval 'use Email::Address 1.889; 1'
+    or plan skip_all => 'Email::Address 1.889 required for ValuesAndExpressions::RequireInterpolationOfMetachars to ignore email addresses.';
 
 plan tests => 2;
 

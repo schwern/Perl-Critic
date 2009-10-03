@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ sub applies_to           { return 'PPI::Token::Symbol'       }
 sub violates {
     my ($self, $elem, undef) = @_;
 
-    if( $elem->content() eq q{@ISA} ) {  ## no critic (RequireInterpolation)
+    if( $elem eq q{@ISA} ) {  ## no critic (RequireInterpolation)
         return $self->violation( $DESC, $EXPL, $elem );
     }
     return; #ok!

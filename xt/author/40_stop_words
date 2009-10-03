@@ -88,7 +88,6 @@ STDERR
 STDIN
 STDOUT
 stringification
-stringifying
 subdirectories
 superclass
 superclasses
@@ -96,7 +95,6 @@ TerMarsch
 Thalhammer
 TODO
 typeglob
-typeglobs
 UI
 unblessed
 undef

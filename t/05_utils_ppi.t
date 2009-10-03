@@ -13,11 +13,11 @@ use warnings;
 
 use Readonly;
 
-use Test::More tests => 83;
+use Test::More tests => 81;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -61,8 +61,6 @@ can_ok('main', 'is_ppi_generic_statement');
 can_ok('main', 'is_ppi_statement_subclass');
 can_ok('main', 'is_subroutine_declaration');
 can_ok('main', 'is_in_subroutine');
-can_ok('main', 'class_ancestry');
-
 
 #-----------------------------------------------------------------------------
 #  is_ppi_expression_or_generic_statement tests
@@ -372,21 +370,6 @@ can_ok('main', 'class_ancestry');
         0,
     );
     ## use critic
-}
-
-#-----------------------------------------------------------------------------
-# test class_ancestry
-
-{
-
-    no warnings qw(once redefine);  ## no critic (ProhibitNoWarnings);
-
-    local @FOO::ISA = qw(BASE);
-    local @FOO::BAR::ISA = qw(FOO);
-    local *CORE::GLOBAL::require = sub { return 1 };
-    my $got_ancestry = class_ancestry('FOO::BAR');
-    my $expected_ancestry = [ qw( FOO::BAR FOO BASE ) ];
-    is_deeply($got_ancestry, $expected_ancestry, 'class_ancestry()');
 }
 
 #-----------------------------------------------------------------------------

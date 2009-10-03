@@ -16,7 +16,7 @@ use Perl::Critic::Utils qw{ $EMPTY hashify };
 
 use base 'Exporter';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -31,8 +31,7 @@ our @EXPORT_OK = qw{
     $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT
     $PROFILE_COLOR_SEVERITY_LOW_DEFAULT
     $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
-    $DOCUMENT_TYPE_SCRIPT
-    $DOCUMENT_TYPE_MODULE
+    $_MODULE_VERSION_TERM_ANSICOLOR
 };
 
 our %EXPORT_TAGS = (
@@ -53,12 +52,6 @@ our %EXPORT_TAGS = (
             $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT
             $PROFILE_COLOR_SEVERITY_LOW_DEFAULT
             $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT
-        }
-    ],
-    document_type => [
-        qw{
-            $DOCUMENT_TYPE_SCRIPT
-            $DOCUMENT_TYPE_MODULE
         }
     ],
 );
@@ -83,8 +76,9 @@ Readonly::Scalar our $PROFILE_COLOR_SEVERITY_MEDIUM_DEFAULT     => $EMPTY;
 Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOW_DEFAULT        => $EMPTY;
 Readonly::Scalar our $PROFILE_COLOR_SEVERITY_LOWEST_DEFAULT     => $EMPTY;
 
-Readonly::Scalar our $DOCUMENT_TYPE_SCRIPT  => 'script';
-Readonly::Scalar our $DOCUMENT_TYPE_MODULE  => 'module';
+# If the following changes, the corresponding change needs to be made in
+# inc/Perl/Critic/BuildUtilities.pm, sub recommended_module_versions().
+Readonly::Scalar our $_MODULE_VERSION_TERM_ANSICOLOR => 2.02;
 
 #-----------------------------------------------------------------------------
 
@@ -159,16 +153,6 @@ C<:color_severity> tag.
 
 Default for the -color-severity-lowest option. Importable via the
 C<:color_severity> tag.
-
-=item C<$DOCUMENT_TYPE_SCRIPT>
-
-The document type representing a script. Importable via the C<:document_type>
-tag.
-
-=item C<$DOCUMENT_TYPE_MODULE>
-
-The document type representing a module. Importable via the C<:document_type>
-tag.
 
 =back
 

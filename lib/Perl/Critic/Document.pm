@@ -22,28 +22,20 @@ use version;
 
 use Perl::Critic::Annotation;
 use Perl::Critic::Exception::Parse qw< throw_parse >;
-use Perl::Critic::Utils qw < :characters shebang_line >;
-use Perl::Critic::Utils::Constants qw< :document_type >;
-use Perl::Critic::PPIx::Optimized;
-
+use Perl::Critic::Utils qw< :booleans :characters shebang_line >;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
 our $AUTOLOAD;
-sub AUTOLOAD {  ## no critic (ProhibitAutoloading, ArgUnpacking)
+sub AUTOLOAD {  ## no critic (ProhibitAutoloading,ArgUnpacking)
     my ( $function_name ) = $AUTOLOAD =~ m/ ([^:\']+) \z /xms;
-    return shift->{_doc}->$function_name(@_);
-}
-
-#-----------------------------------------------------------------------------
-
-sub DESTROY {
-    Perl::Critic::PPIx::Optimized::flush_caches();
-    return;
+    return if $function_name eq 'DESTROY';
+    my $self = shift;
+    return $self->{_doc}->$function_name(@_);
 }
 
 #-----------------------------------------------------------------------------
@@ -94,7 +86,7 @@ sub _init { ## no critic (Subroutines::RequireArgUnpacking)
     $self->{_disabled_line_map} = {};
     $self->index_locations();
     $self->_disable_shebang_fix();
-    $self->{_document_type} = $self->_compute_document_type(\%args);
+    $self->{_is_module} = $self->_determine_is_module(\%args);
 
     return $self;
 }
@@ -123,6 +115,70 @@ sub isa {
 
 #-----------------------------------------------------------------------------
 
+sub find {
+    my ($self, $wanted, @more_args) = @_;
+
+    # This method can only find elements by their class names.  For
+    # other types of searches, delegate to the PPI::Document
+    if ( ( ref $wanted ) || !$wanted || $wanted !~ m/ \A PPI:: /xms ) {
+        return $self->{_doc}->find($wanted, @more_args);
+    }
+
+    # Build the class cache if it doesn't exist.  This happens at most
+    # once per Perl::Critic::Document instance.  %elements of will be
+    # populated as a side-effect of calling the $finder_sub coderef
+    # that is produced by the caching_finder() closure.
+    if ( !$self->{_elements_of} ) {
+
+        my %cache = ( 'PPI::Document' => [ $self ] );
+
+        # The cache refers to $self, and $self refers to the cache.  This
+        # creates a circular reference that leaks memory (i.e.  $self is not
+        # destroyed until execution is complete).  By weakening the reference,
+        # we allow perl to collect the garbage properly.
+        weaken( $cache{'PPI::Document'}->[0] );
+
+        my $finder_coderef = _caching_finder( \%cache );
+        $self->{_doc}->find( $finder_coderef );
+        $self->{_elements_of} = \%cache;
+    }
+
+    # find() must return false-but-defined on fail
+    return $self->{_elements_of}->{$wanted} || q{};
+}
+
+#-----------------------------------------------------------------------------
+
+sub find_first {
+    my ($self, $wanted, @more_args) = @_;
+
+    # This method can only find elements by their class names.  For
+    # other types of searches, delegate to the PPI::Document
+    if ( ( ref $wanted ) || !$wanted || $wanted !~ m/ \A PPI:: /xms ) {
+        return $self->{_doc}->find_first($wanted, @more_args);
+    }
+
+    my $result = $self->find($wanted);
+    return $result ? $result->[0] : $result;
+}
+
+#-----------------------------------------------------------------------------
+
+sub find_any {
+    my ($self, $wanted, @more_args) = @_;
+
+    # This method can only find elements by their class names.  For
+    # other types of searches, delegate to the PPI::Document
+    if ( ( ref $wanted ) || !$wanted || $wanted !~ m/ \A PPI:: /xms ) {
+        return $self->{_doc}->find_any($wanted, @more_args);
+    }
+
+    my $result = $self->find($wanted);
+    return $result ? 1 : $result;
+}
+
+#-----------------------------------------------------------------------------
+
 sub filename {
     my ($self) = @_;
     my $doc = $self->{_doc};
@@ -138,7 +194,7 @@ sub highest_explicit_perl_version {
         $self->{_highest_explicit_perl_version};
 
     if ( not exists $self->{_highest_explicit_perl_version} ) {
-        my $includes = $self->_find_perl_version_includes();
+        my $includes = $self->find( \&_is_a_version_statement );
 
         if ($includes) {
             # Note: this doesn't use List::Util::max() because that function
@@ -250,36 +306,64 @@ sub suppressed_violations {
 
 #-----------------------------------------------------------------------------
 
-sub document_type {
+sub is_program {
     my ($self) = @_;
-    return $self->{_document_type};
-}
 
-#-----------------------------------------------------------------------------
-
-sub is_script {
-    my ($self) = @_;
-    return $self->{_document_type} eq $DOCUMENT_TYPE_SCRIPT;
+    return not $self->is_module();
 }
 
 #-----------------------------------------------------------------------------
 
 sub is_module {
     my ($self) = @_;
-    return $self->{_document_type} eq $DOCUMENT_TYPE_MODULE;
+
+    return $self->{_is_module};
 }
 
 #-----------------------------------------------------------------------------
 # PRIVATE functions & methods
 
-sub _find_perl_version_includes {
-    my ($self) = @_;
+sub _is_a_version_statement {
+    my (undef, $element) = @_;
 
-    # This takes advantage of our find() method, which is
-    # optimized to search for elements based on their class.
-    my $includes = $self->find('PPI::Statement::Include') || [];
-    my @version_includes = grep { $_->version() } @{$includes};
-    return @version_includes ? \@version_includes : $EMPTY;
+    return 0 if not $element->isa('PPI::Statement::Include');
+    return 1 if $element->version();
+    return 0;
+}
+
+#-----------------------------------------------------------------------------
+
+sub _caching_finder {
+
+    my $cache_ref = shift;  # These vars will persist for the life
+    my %isa_cache = ();     # of the code ref that this sub returns
+
+
+    # Gather up all the PPI elements and sort by @ISA.  Note: if any
+    # instances used multiple inheritance, this implementation would
+    # lead to multiple copies of $element in the $elements_of lists.
+    # However, PPI::* doesn't do multiple inheritance, so we are safe
+
+    return sub {
+        my (undef, $element) = @_;
+        my $classes = $isa_cache{ref $element};
+        if ( !$classes ) {
+            $classes = [ ref $element ];
+            # Use a C-style loop because we append to the classes array inside
+            for ( my $i = 0; $i < @{$classes}; $i++ ) { ## no critic(ProhibitCStyleForLoops)
+                no strict 'refs';                       ## no critic(ProhibitNoStrict)
+                push @{$classes}, @{"$classes->[$i]::ISA"};
+                $cache_ref->{$classes->[$i]} ||= [];
+            }
+            $isa_cache{$classes->[0]} = $classes;
+        }
+
+        for my $class ( @{$classes} ) {
+            push @{$cache_ref->{$class}}, $element;
+        }
+
+        return 0; # 0 tells find() to keep traversing, but not to store this $element
+    };
 }
 
 #-----------------------------------------------------------------------------
@@ -287,9 +371,9 @@ sub _find_perl_version_includes {
 sub _disable_shebang_fix {
     my ($self) = @_;
 
-    # When you install a script using ExtUtils::MakeMaker or Module::Build, it
+    # When you install a program using ExtUtils::MakeMaker or Module::Build, it
     # inserts some magical code into the top of the file (just after the
-    # shebang).  This code allows people to call your script using a shell,
+    # shebang).  This code allows people to call your program using a shell,
     # like `sh my_script`.  Unfortunately, this code causes several Policy
     # violations, so we disable them as if they had "## no critic" annotations.
 
@@ -311,27 +395,28 @@ sub _disable_shebang_fix {
 
 #-----------------------------------------------------------------------------
 
-sub _compute_document_type {
+sub _determine_is_module {
     my ($self, $args) = @_;
 
     my $file_name = $self->filename();
-    if (defined $file_name && ref $args->{'-script-extensions'} eq 'ARRAY') {
-        foreach my $ext ( @{ $args->{'-script-extensions'} } ) {
-            my $regex = ref $ext eq 'Regexp' ?
-                $ext :
-                qr{ @{[ quotemeta $ext ]} \z }smx;
-            return $DOCUMENT_TYPE_SCRIPT
-                if $file_name =~ m/$regex/smx;
+    if (
+            defined $file_name
+        and ref $args->{'-program-extensions'} eq 'ARRAY'
+    ) {
+        foreach my $ext ( @{ $args->{'-program-extensions'} } ) {
+            my $regex =
+                ref $ext eq 'Regexp'
+                    ? $ext
+                    : qr< @{ [ quotemeta $ext ] } \z >xms;
+
+            return $FALSE if $file_name =~ m/$regex/smx;
         }
     }
 
-    return $DOCUMENT_TYPE_SCRIPT
-        if shebang_line($self);
+    return $FALSE if shebang_line($self);
+    return $FALSE if defined $file_name && $file_name =~ m/ [.] PL \z /smx;
 
-    return $DOCUMENT_TYPE_SCRIPT
-        if defined $file_name && $file_name =~ m/ [.] PL \z /smx;
-
-    return $DOCUMENT_TYPE_MODULE;
+    return $TRUE;
 }
 
 #-----------------------------------------------------------------------------
@@ -391,26 +476,21 @@ will go through a deprecation cycle.
 
 =over
 
-=item C<< new(-source => $source_code, '-script-extensions' => [script_extensions]) >>
+=item C<< new(-source => $source_code, '-program-extensions' => [program_extensions]) >>
 
 Create a new instance referencing a PPI::Document instance.  The
 C<$source_code> can be the name of a file, a reference to a scalar
 containing actual source code, or a L<PPI::Document> or
 L<PPI::Document::File>.
 
-The '-script-extensions' argument is optional, and is a reference to a list of
-strings and/or regexps. The strings will be made into regexps matching the end
-of a file name, and any document whose file name matches one of the regexps
-will be considered a script.
+The '-program-extensions' argument is optional, and is a reference to a list
+of strings and/or regular expressions. The strings will be made into regular
+expressions matching the end of a file name, and any document whose file name
+matches one of the regular expressions will be considered a program.
 
-If -script-extensions is not specified, or if it does not determine the
-document type, the document type will be 'script' if the source has a shebang
-line or its file name (if any) matches C<< m/ [.] PL \z /smx >>, or 'module'
-otherwise.
-
-Be aware that the document type influences not only the value returned by the
-C<document_type()> method, but also the value returned by the C<is_script()>
-and C<is_module()> methods.
+If -program-extensions is not specified, or if it does not determine the
+document type, the document will be considered to be a program if the source
+has a shebang line or its file name (if any) matches C<< m/ [.] PL \z /smx >>.
 
 =back
 
@@ -486,27 +566,15 @@ annotation. Returns C<$self>.
 Returns a list of references to all the L<Perl::Critic::Violation>s
 that were found in this Document but were suppressed.
 
-=item C<< document_type() >>
 
-Returns the current value of the C<document_type> attribute. When the
-C<Perl::Critic::Document> object is instantiated, it will be set based on the
-value '-script-extensions' argument (if any) and/or the contents of the file
-to L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT"> or
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. See the C<new()>
-documentation for the details.  This attribute exists to support
-L<Perl::Critic|Perl::Critic>.
+=item C<< is_program() >>
 
-=item C<< is_script() >>
+Returns whether this document is considered to be a program.
 
-Returns a true value if the C<document_type> attribute is equal to
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_SCRIPT">. Otherwise returns
-false. This method exists to support L<Perl::Critic|Perl::Critic>. 
 
 =item C<< is_module() >>
 
-Returns a true value if the C<document_type> attribute is equal to
-L<Perl::Critic::Utils::Constants/"$DOCUMENT_TYPE_MODULE">. Otherwise returns
-false. This method exists to support L<Perl::Critic|Perl::Critic>. 
+Returns whether this document is considered to be a Perl module.
 
 =back
 

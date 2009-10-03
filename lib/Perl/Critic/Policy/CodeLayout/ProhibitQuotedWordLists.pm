@@ -16,7 +16,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :characters :severities :classification};
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ sub violates {
     return if not $sibling;
 
     return if $sibling->isa('PPI::Token::Symbol');
-    return if $sibling->isa('PPI::Token::Operator') and $sibling->content() eq '->';
+    return if $sibling->isa('PPI::Token::Operator') and $sibling eq '->';
     return if $sibling->isa('PPI::Token::Word') and not is_included_module_name($sibling);
 
     # Get the list elements
@@ -68,7 +68,7 @@ sub violates {
 
     my $count = 0;
     for my $child ( @children ) {
-        next if $child->isa('PPI::Token::Operator')  && $child->content() eq $COMMA;
+        next if $child->isa('PPI::Token::Operator')  && $child eq $COMMA;
 
         # All elements must be literal strings,
         # and must contain 1 or more word characters.
@@ -165,12 +165,12 @@ to C<ProhibitQuotedWordLists> in your F<.perlcriticrc> file.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

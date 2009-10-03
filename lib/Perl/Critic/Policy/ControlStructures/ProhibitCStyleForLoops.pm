@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :characters :severities };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ Readonly::Scalar my $EXPL => [ 100 ];
 sub supported_parameters { return ()                         }
 sub default_severity     { return $SEVERITY_LOW              }
 sub default_themes       { return qw( core pbp maintenance ) }
-sub applies_to           { return 'PPI::Structure::For'      }
+sub applies_to           { return 'PPI::Structure::For'  }
 
 #-----------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ sub _is_cstyle {
     my $elem      = shift;
     my $nodes_ref = $elem->find('PPI::Token::Structure');
     return if !$nodes_ref;
-    my @semis     = grep { $_->content() eq $SCOLON } @{$nodes_ref};
+    my @semis     = grep { $_ eq $SCOLON } @{$nodes_ref};
     return scalar @semis == 2;
 }
 
@@ -88,11 +88,11 @@ This Policy is not configurable except for the standard options.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

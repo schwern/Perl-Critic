@@ -18,7 +18,7 @@ use Perl::Critic::Policy qw{};
 use Perl::Critic::Utils qw{ :characters };
 use overload ( q{""} => 'to_string' );
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -158,8 +158,8 @@ sub to_string {
     }
 
     $prototype .= $prefix;
-    $prototype .= q{script-extensions = };
-    $prototype .= join $SPACE, $configuration->script_extensions();
+    $prototype .= q{program-extensions = };
+    $prototype .= join $SPACE, $configuration->program_extensions();
 
     Perl::Critic::Policy::set_format( $self->_proto_format() );
 
@@ -266,12 +266,12 @@ file.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

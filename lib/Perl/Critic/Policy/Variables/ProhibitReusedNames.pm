@@ -16,7 +16,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :data_conversion };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ sub applies_to           { return 'PPI::Statement::Variable' }
 
 sub violates {
     my ( $self, $elem, undef ) = @_;
-    return if 'local' eq $elem->type();
+    return if 'local' eq $elem->type;
 
     my $allow = $self->{_allow};
     my @names = grep { not $allow->{$_} } $elem->variables();

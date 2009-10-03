@@ -18,7 +18,7 @@ use Scalar::Util qw< refaddr >;
 use Perl::Critic::Utils qw< :booleans :characters :severities hashify >;
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ sub violates {
 
     if ( $following and $following->isa('PPI::Token::Operator') ) {
         return if $BOOLEAN_OPERATORS{ $following->content() };
-        return if q{?} eq $following->content();
+        return if q{?} eq $following->content;
     }
 
     return $self->violation($DESC, $EXPL, $elem);

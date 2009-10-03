@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :data_conversion };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ This Policy is not configurable except for the standard options.
 
 =head1 AUTHOR
 
-Jeffrey R. Thalhammer <thaljef@cpan.org>
+Jeffrey R. Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT

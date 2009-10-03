@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :ppi };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ sub applies_to           { return 'PPI::Token::Word'  }
 sub violates {
     my ($self, $elem, undef) = @_;
 
-    return if $elem->content() ne 'open';
+    return if $elem ne 'open';
     return if ! is_function_call($elem);
 
     my $first_arg = ( parse_arg_list($elem) )[0];
@@ -100,11 +100,11 @@ L<IO::File|IO::File>
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

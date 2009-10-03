@@ -29,7 +29,7 @@ use Perl::Critic::Exception::Fatal::Internal qw{ &throw_internal };
 use Perl::Critic::Utils qw{ :severities :data_conversion policy_long_name };
 use Perl::Critic::PolicyFactory (-test => 1);
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 Readonly::Array our @EXPORT_OK => qw(
     pcritique pcritique_with_violations
@@ -420,7 +420,7 @@ interface will go through a deprecation cycle.
 
 This module is used by L<Perl::Critic|Perl::Critic> only for
 self-testing. It provides a few handy subroutines for testing new
-Perl::Critic::Policy modules.  Look at the test scripts that ship with
+Perl::Critic::Policy modules.  Look at the test programs that ship with
 Perl::Critic for more examples of how to use these subroutines.
 
 

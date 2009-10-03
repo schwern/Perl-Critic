@@ -17,7 +17,7 @@ use base 'Perl::Critic::Policy';
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ sub initialize_if_enabled {
         $self->{_rcs_regexes} = $rcs_regexes;
     }
 
-    if ( not eval { require Email::Address; 1 } ) {
+    if ( not eval 'use Email::Address 1.889; 1' ) {
         no warnings 'redefine'; ## no critic (TestingAndDebugging::ProhibitNoWarnings)
         *_looks_like_email_address = sub {};
     }
@@ -247,12 +247,12 @@ L<Perl::Critic::Policy::ValuesAndExpressions::ProhibitInterpolationOfLiterals|Pe
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

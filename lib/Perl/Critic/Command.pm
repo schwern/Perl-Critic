@@ -23,11 +23,12 @@ use Perl::Critic::Utils qw<
     :characters :severities policy_short_name
     $DEFAULT_VERBOSITY $DEFAULT_VERBOSITY_WITH_FILE_NAME
 >;
+use Perl::Critic::Utils::Constants qw< $_MODULE_VERSION_TERM_ANSICOLOR >;
 use Perl::Critic::Violation qw<>;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -515,7 +516,7 @@ sub _get_option_specification {
         color-severity-lowest|colour-severity-lowest|color-severity-1|colour-severity-1=s
         files-with-violations|l
         files-without-violations|L
-        script-extensions=s@
+        program-extensions=s@
     >;
 }
 
@@ -524,7 +525,11 @@ sub _get_option_specification {
 sub _colorize_by_severity {
     my @violations = @_;
     return @violations if _this_is_windows();
-    return @violations if not eval { require Term::ANSIColor; 1; };
+    return @violations if not eval {
+        require Term::ANSIColor;
+        Term::ANSIColor->VERSION( $_MODULE_VERSION_TERM_ANSICOLOR );
+        1;
+    };
 
     my $config = $critic->config();
     my %color_of = (
@@ -711,12 +716,12 @@ Turn this into an object.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

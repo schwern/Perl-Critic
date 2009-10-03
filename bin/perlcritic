@@ -17,10 +17,10 @@ use Perl::Critic::Command qw< run >;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
-# Begin script.  Don't run when loaded as a library
+# Begin program.  Don't run when loaded as a library
 
 # This %ENV check is to allow perlcritic to function when bundled under PAR,
 # which invokes this program not as the top stack frame. -- rjbs, 2008-08-11
@@ -62,7 +62,7 @@ C<perlcritic> - Command-line interface to critique Perl source.
              [--color-severity-lowest color_specification]
              [--files-with-violations | -l]
              [--files-without-violations | -L]
-             [--script-extensions file_name_extension]
+             [--program-extensions file_name_extension]
              {FILE | DIRECTORY | STDIN}
 
   perlcritic --profile-proto
@@ -483,24 +483,24 @@ Display only the names of files without violations.  Use this feature
 with --single-policy to find files that do not contain violations of a
 given policy. Can also be specified as C<--L>.
 
-=item C<--script-extensions file_name_extension>
+=item C<--program-extensions file_name_extension>
 
 Tell C<perlcritic> to treat files whose names end in the given file name
-extension as scripts, not as modules. If a leading '.' is desired it must be
+extension as programs, not as modules. If a leading '.' is desired it must be
 explicitly specified, e.g.
 
- --script-extensions .pl
+    --program-extensions .pl
 
 The matching is case-sensitive, and the option may be specified as many times
 as desired, e.g.
 
- --script-extensions .pl --script-extensions .cgi
+    --program-extensions .pl --program-extensions .cgi
 
 The above can also be done by quoting the file name extensions:
 
- --script-extensions '.pl .cgi'
+    --program-extensions '.pl .cgi'
 
-Files whose name ends in '.PL' will always be considered scripts.
+Files whose name ends in '.PL' will always be considered programs.
 
 =item C<--doc PATTERN>
 
@@ -701,7 +701,7 @@ Each Policy is defined with one or more "themes".  Themes can be used
 to create arbitrary groups of Policies.  They are intended to provide
 an alternative mechanism for selecting your preferred set of Policies.
 For example, you may wish disable a certain set of Policies when
-analyzing test scripts.  Conversely, you may wish to enable only a
+analyzing test programs.  Conversely, you may wish to enable only a
 specific subset of Policies when analyzing modules.
 
 The Policies that ship with Perl::Critic are have been divided into
@@ -718,7 +718,7 @@ needs.
     cosmetic          Policies that only have a superficial effect
     complexity        Policies that specificaly relate to code complexity
     security          Policies that relate to security issues
-    tests             Policies that are specific to test scripts
+    tests             Policies that are specific to test programs
 
 Say C<"perlcritic --list"> to get a listing of all available policies
 and the themes that are associated with each one.  You can also change
@@ -948,7 +948,7 @@ this distribution for a step-by-step demonstration of how to create
 new Policy modules.
 
 If you develop any new Policy modules, feel free to send them to C<<
-<thaljef@cpan.org> >> and I'll be happy to put them into the
+<jeff@imaginative-software.com> >> and I'll be happy to put them into the
 Perl::Critic distribution.  Or if you would like to work on the
 Perl::Critic project directly, check out our repository at
 L<http://perlcritic.tigris.org>.  To subscribe to our mailing list,
@@ -960,7 +960,7 @@ Policies to enforce your local guidelines.  Or if your code base is
 prone to a particular defect pattern, we can design Policies that will
 help you catch those costly defects B<before> they go into production.
 To discuss your needs with the Perl::Critic team, just contact C<<
-<thaljef@cpan.org> >>.
+<jeff@imaginative-software.com> >>.
 
 
 =head1 CONTACTING THE DEVELOPMENT TEAM
@@ -968,7 +968,7 @@ To discuss your needs with the Perl::Critic team, just contact C<<
 You are encouraged to subscribe to the mailing list; send a message to
 L<mailto:users-subscribe@perlcritic.tigris.org>.  See also the archives at
 L<http://perlcritic.tigris.org/servlets/SummarizeList?listName=users>.
-You can also contact the author at C<< <thaljef@cpan.org> >>.
+You can also contact the author at C<< <jeff@imaginative-software.com> >>.
 
 At least one member of the development team has started hanging around
 in L<irc://irc.perl.org/#perlcritic>.
@@ -1033,12 +1033,12 @@ and Sharon, my wife - For putting up with my all-night code sessions.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

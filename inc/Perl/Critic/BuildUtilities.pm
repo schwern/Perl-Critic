@@ -13,7 +13,7 @@ use warnings;
 
 use English q<-no_match_vars>;
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 use base qw{ Exporter };
 
@@ -92,7 +92,10 @@ sub recommended_module_versions {
         'Perl::Tidy'            => 0,
         'Readonly::XS'          => 0,
         'Regexp::Parser'        => '0.20',
-        'Term::ANSIColor'       => 0,
+
+        # If the following changes, the corresponding change needs to be made
+        # in $Perl::Critic::Utils::Constants::_MODULE_VERSION_TERM_ANSICOLOR.
+        'Term::ANSIColor'       => '2.02',
 
         # All of these are for Documentation::PodSpelling
         'File::Which'           => 0,
@@ -147,7 +150,6 @@ sub test_wrappers_to_generate {
 }
 
 my @TARGET_FILES = qw<
-    lib/Perl/Critic/PolicySummary.pod
     t/ControlStructures/ProhibitNegativeExpressionsInUnlessAndUntilConditions.run
     t/NamingConventions/Capitalization.run
     t/Variables/RequireLocalizedPunctuationVars.run
@@ -207,6 +209,9 @@ extracted the Perl::Critic tarball using GNU tar.
 END_OF_TAR_WARNING
     }
 }
+
+
+
 
 1;
 

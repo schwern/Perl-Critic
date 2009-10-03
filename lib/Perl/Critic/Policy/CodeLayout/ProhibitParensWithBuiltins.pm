@@ -19,9 +19,7 @@ use Perl::Critic::Utils qw{
 };
 use base 'Perl::Critic::Policy';
 
-#-----------------------------------------------------------------------------
-
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -141,7 +139,7 @@ sub _is_equals_exemption {
     my ($sibling) = @_;
 
     if ( my $first_op = $sibling->find_first('PPI::Token::Operator') ){
-        return $TRUE if $first_op->content() eq q{=};
+        return $TRUE if $first_op eq q{=};
     }
 
     return $FALSE;
@@ -154,7 +152,7 @@ sub _is_equals_exemption {
 sub _is_sort_exemption {
     my ($elem, $sibling) = @_;
 
-    if ( $elem->content() eq 'sort' ) {
+    if ( $elem eq 'sort' ) {
         my $first_arg = $sibling->schild(0);
         if ( $first_arg && $first_arg->isa('PPI::Statement::Expression') ) {
             $first_arg = $first_arg->schild(0);
@@ -247,12 +245,12 @@ that are exempt from the policy.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

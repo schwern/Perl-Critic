@@ -18,7 +18,7 @@ use Perl::Critic::Utils::PPI qw{ is_ppi_statement_subclass };
 
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -117,8 +117,7 @@ sub _is_direct_part_of_map_or_grep_block {
     return if not $block_prior_sibling;
     return if not $block_prior_sibling->isa('PPI::Token::Word');
 
-    return $block_prior_sibling->content() eq 'map'
-        || $block_prior_sibling->content() eq 'grep';
+    return $block_prior_sibling eq 'map' || $block_prior_sibling eq 'grep';
 }
 
 sub _is_last_statement_in_a_block {

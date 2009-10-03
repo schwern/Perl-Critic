@@ -15,7 +15,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ sub applies_to           { return 'PPI::Token::Word'     }
 sub violates {
     my ( $self, $elem, undef ) = @_;
 
-    return if $elem->content() ne 'close';
+    return if $elem ne 'close';
     return if ! is_unchecked_call( $elem );
 
     return $self->violation( $DESC, $EXPL, $elem );
@@ -91,7 +91,7 @@ Andrew Moore <amoore@mooresystems.com>
 =head1 ACKNOWLEDGMENTS
 
 This policy module is based heavily on policies written by Jeffrey
-Ryan Thalhammer <thaljef@cpan.org>.
+Ryan Thalhammer <jeff@imaginative-software.com>.
 
 =head1 COPYRIGHT
 

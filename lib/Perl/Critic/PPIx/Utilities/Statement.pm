@@ -19,7 +19,7 @@ use Perl::Critic::Utils::PPI qw< is_ppi_generic_statement >;
 
 use base 'Exporter';
 
-our $VERSION = '1.103';
+our $VERSION = '1.099_002';
 
 #-----------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ sub get_constant_name_elements_from_declaring_statement {
     if ( $element->isa('PPI::Statement::Include') ) {
         my $pragma;
         if ( $pragma = $element->pragma() and $pragma eq 'constant' ) {
-            return _constant_name_from_constant_pragma($element);
+            return _constant_names_from_constant_pragma($element);
         }
     }
     elsif (
@@ -59,7 +59,7 @@ sub get_constant_name_elements_from_declaring_statement {
     return;
 }
 
-sub _constant_name_from_constant_pragma {
+sub _constant_names_from_constant_pragma {
     my ($include) = @_;
 
     my @arguments = $include->arguments() or return;
@@ -67,6 +67,11 @@ sub _constant_name_from_constant_pragma {
     my $follower = $arguments[0];
     return if not defined $follower;
 
+    # We test for a 'PPI::Structure::Block' in the following because some
+    # versions of PPI parse the last element of 'use constant { ONE => 1, TWO
+    # => 2 }' as a block rather than a constructor. As of PPI 1.206, PPI
+    # handles the above correctly, but still blows it on 'use constant 1.16 {
+    # ONE => 1, TWO => 2 }'.
     if ( $follower->isa( 'PPI::Structure::Constructor' )
             or $follower->isa( 'PPI::Structure::Block' ) ) {
 
@@ -100,12 +105,11 @@ __END__
 
 =pod
 
-=for stopwords FOO BAZ
+=for stopwords
 
 =head1 NAME
 
-Perl::Critic::PPIx::Utilities::Statement - Utility functions for dealing with
-PPI statement objects.
+Perl::Critic::PPIx::Utilities::Statement - Utility functions for dealing with PPI statement objects.
 
 
 =head1 DESCRIPTION

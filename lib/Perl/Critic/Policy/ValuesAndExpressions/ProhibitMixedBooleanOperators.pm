@@ -18,7 +18,7 @@ use base 'Perl::Critic::Policy';
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 #-----------------------------------------------------------------------------
 
 Readonly::Hash my %LOW_BOOLEANS  => hashify( qw( not or and ) );
@@ -77,9 +77,8 @@ sub violates {
 sub _low_boolean {
     my (undef, $elem) = @_;
     return if $elem->isa('PPI::Statement');
-    return 0 if not exists $LOW_BOOLEANS{$elem};
-    return $elem->isa('PPI::Token::Operator');
-
+    $elem->isa('PPI::Token::Operator') || return 0;
+    return exists $LOW_BOOLEANS{$elem};
 }
 
 #-----------------------------------------------------------------------------
@@ -87,8 +86,8 @@ sub _low_boolean {
 sub _high_boolean {
     my (undef, $elem) = @_;
     return if $elem->isa('PPI::Statement');
-    return 0 if not exists $HIGH_BOOLEANS{$elem};
-    return $elem->isa('PPI::Token::Operator');
+    $elem->isa('PPI::Token::Operator') || return 0;
+    return exists $HIGH_BOOLEANS{$elem};
 }
 
 1;
@@ -130,11 +129,11 @@ This Policy is not configurable except for the standard options.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

@@ -19,7 +19,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities :classification :ppi };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -38,7 +38,7 @@ sub applies_to           { return 'PPI::Token::Word'  }
 sub violates {
     my ( $self, $elem, undef ) = @_;
 
-    return if $elem->content() ne 'grep';
+    return if $elem ne 'grep';
     return if ! is_function_call($elem);
 
     my $arg = first_arg($elem);
@@ -90,55 +90,13 @@ L<Perl::Critic::Policy::BuiltinFunctions::ProhibitStringyEval|Perl::Critic::Poli
 
 L<Perl::Critic::Policy::BuiltinFunctions::RequireBlockMap|Perl::Critic::Policy::BuiltinFunctions::RequireBlockMap>
 
-
-=head1 METADATA
-
-=head2 Explanation
-
-=head3 First Edition of Perl Best Practices
-
-=over
-
-=item Pages
-
-169
-
-
-=item Chapter/Section
-
-8/13
-
-
-=back
-
-
-=head2 Description
-
-Expression form of "grep"
-
-
-=head2 Default Severity
-
-High
-
-
-=head2 Default Themes
-
-core bugs pbp
-
-
-=head2 Applies To
-
-L<PPI::Token::Word>
-
-
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

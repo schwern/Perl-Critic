@@ -16,7 +16,7 @@ use Readonly;
 use Perl::Critic::Utils qw{ :severities hashify };
 use base 'Perl::Critic::Policy';
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ sub violates {
     my $psib = $elem->sprevious_sibling();
     if ( $psib ) {
         #Sigil is allowed if taking a reference, e.g. "\&my_sub"
-        return if $psib->isa('PPI::Token::Cast') && $psib->content() eq q{\\};
+        return if $psib->isa('PPI::Token::Cast') && $psib eq q{\\};
     }
 
     return if ( $elem !~ m{\A [&] }xms ); # ok
@@ -56,6 +56,11 @@ sub violates {
                    || $up->isa('PPI::Structure::List')
                    || $up->isa('PPI::Statement'))) {
             if (my $word = $up->sprevious_sibling) {
+                # Since backslashes distribute over lists (per perlref), if
+                # we have a list and the previous is a backslash, we're cool.
+                return if $up->isa( 'PPI::Structure::List' ) &&
+                        $word->isa( 'PPI::Token::Cast' ) &&
+                        $word->content() eq q{\\};
                 # For a word set $psib to have it checked against %EXEMPTIONS
                 # below.  For a non-word it's a violation, leave $psib false
                 # to get there.
@@ -106,11 +111,11 @@ This Policy is not configurable except for the standard options.
 
 =head1 AUTHOR
 
-Jeffrey Ryan Thalhammer <thaljef@cpan.org>
+Jeffrey Ryan Thalhammer <jeff@imaginative-software.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2009 Jeffrey Ryan Thalhammer.  All rights reserved.
+Copyright (c) 2005-2009 Imaginative Software Systems.  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  The full text of this license

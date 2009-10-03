@@ -20,7 +20,6 @@ use Carp qw< confess >;
 use File::Temp qw< >;
 use PPI::Document qw< >;
 use PPI::Document::File qw< >;
-use Perl::Critic::Document qw< >;
 
 use Perl::Critic::PolicyFactory;
 use Perl::Critic::TestUtils qw(bundled_policy_names);
@@ -29,7 +28,7 @@ use Test::More tests => 125;
 
 #-----------------------------------------------------------------------------
 
-our $VERSION = '1.103';
+our $VERSION = '1.105';
 
 #-----------------------------------------------------------------------------
 
@@ -91,11 +90,14 @@ sub test_export {
 #-----------------------------------------------------------------------------
 
 sub count_matches { my $val = shift; return defined $val ? scalar @{$val} : 0; }
-sub make_doc { my $code = shift; return Perl::Critic::Document->new( '-source'
-        => ref $code ? $code : \$code); }
+sub make_doc {
+    my $code = shift;
+    return
+        Perl::Critic::Document->new('-source' => ref $code ? $code : \$code);
+}
 
 sub test_find_keywords {
-    my $doc = PPI::Document->new(); # Empty doc.
+    my $doc = PPI::Document->new(); #Empty doc
     is( count_matches( find_keywords($doc, 'return') ), 0, 'find_keywords, no doc' );
 
     my $code = 'return;';
@@ -121,7 +123,7 @@ sub test_find_keywords {
 
 sub test_is_hash_key {
     my $code = 'sub foo { return $h1{bar}, $h2->{baz}, $h3->{ nuts() } }';
-    my $doc = make_doc( $code );
+    my $doc = PPI::Document->new(\$code);
     my @words = @{$doc->find('PPI::Token::Word')};
     my @expect = (
         ['sub', undef],
@@ -160,12 +162,14 @@ sub test_is_script {
     no warnings qw< deprecated >;   ## no critic (TestingAndDebugging::ProhibitNoWarnings)
 
     for my $code (@good) {
-        my $doc = make_doc( $code ) or confess;
+        my $doc = PPI::Document->new(\$code) or confess;
+        $doc->index_locations();
         ok(is_script($doc), 'is_script, true');
     }
 
     for my $code (@bad) {
-        my $doc = make_doc( $code ) or confess;
+        my $doc = PPI::Document->new(\$code) or confess;
+        $doc->index_locations();
         ok(!is_script($doc), 'is_script, false');
     }
 
@@ -186,6 +190,7 @@ sub test_is_script_with_PL_files { ## no critic (NamingConventions::Capitalizati
     close $temp_file or confess "Couldn't close $temp_file: $OS_ERROR";
 
     my $doc = PPI::Document::File->new($temp_file->filename());
+
     no warnings qw< deprecated >;   ## no critic (TestingAndDebugging::ProhibitNoWarnings)
     ok(is_script($doc), 'is_script, false for .PL files');
 
@@ -327,7 +332,7 @@ sub test_is_perl_and_shebang_line {
 
         ok( Perl::Critic::Utils::_is_perl($filename), qq{Is perl: '$shebang'} );
 
-        my $document = make_doc( $shebang );
+        my $document = PPI::Document->new(\$shebang);
         is(
             Perl::Critic::Utils::shebang_line($document),
             $shebang,
@@ -351,7 +356,7 @@ sub test_is_perl_and_shebang_line {
 
         ok( ! Perl::Critic::Utils::_is_perl($filename), qq{Is not perl: '$shebang'} );
 
-        my $document = make_doc( $shebang );
+        my $document = PPI::Document->new(\$shebang);
         is(
             Perl::Critic::Utils::shebang_line($document),
             ($shebang eq 'shazbot' ? undef : $shebang),
@@ -388,7 +393,7 @@ sub test_first_arg {
     for (my $i = 0; $i < @tests; $i += 2) { ## no critic (ProhibitCStyleForLoops)
         my $code = $tests[$i];
         my $expect = $tests[$i+1];
-        my $doc = make_doc( $code );
+        my $doc = PPI::Document->new(\$code);
         my $got = first_arg($doc->first_token());
         is($got ? "$got" : undef, $expect, 'first_arg - '.$code);
     }
@@ -422,7 +427,7 @@ sub test_parse_arg_list {
     foreach my $test (@tests) {
         my ($code, $expected) = @{ $test };
 
-        my $document = make_doc( $code );
+        my $document = PPI::Document->new( \$code );
         my @got = parse_arg_list( $document->first_token() );
         is_deeply( \@got, $expected, "parse_arg_list: $code" );
     }
@@ -434,7 +439,7 @@ sub test_parse_arg_list {
 
 sub test_is_function_call {
     my $code = 'sub foo{}';
-    my $doc = make_doc( $code );
+    my $doc = PPI::Document->new( \$code );
     my $words = $doc->find('PPI::Token::Word');
     is(scalar @{$words}, 2, 'count PPI::Token::Words');
     is((scalar grep {is_function_call($_)} @{$words}), 0, 'is_function_call');
