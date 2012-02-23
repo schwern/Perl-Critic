@@ -216,27 +216,22 @@ one.
 
 =head1 CONFIGURATION
 
-This policy B<requires> that you specify the type of version control
-in use, else the policy will be considered in violation.
+The policy will guess what version control system you're using, but you can
+also just tell it by setting the C<type>.
 
     [Miscellanea::RequireVcs]
     type = git
 
-Recognized version control systems are rcs, cvs, perforce, subversion
-(aka svn), svk git, mercurial (aka hg), bazaar and darcs.
+Recognized version control systems are rcs, cvs, perforce (aka p4), subversion
+(aka svn), svk, git, mercurial (aka hg), bazaar and darcs.
+
+Perforce and SVK cannot currently be detected.  If you're using them, simply
+set the C<type> and the policy will give you a free pass.
 
 A special value of C<unlisted> is available if your version control is
 not known by this policy.  Using unlisted will satisfy the policy.  We
 ask that you please report unlisted version control systems and we'll
 try to support them.
-
-The policy will usually try to verify the file is under version
-control by issuing a version control command.  If the command is not
-in your C<PATH>, or uses an unusual name, you can specify a relative
-or full path to the command with C<command_path>.
-
-    [Miscellanea::RequireVcs]
-    command_path = /opt/local/git/bin/git
 
 
 =head1 NOTES
