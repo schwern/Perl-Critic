@@ -87,8 +87,7 @@ sub supported_parameters {
     );
 }
 
-# We don't do anything with the document, but this makes the policy only
-# apply once per file.
+# This makes the policy only apply once per file.
 sub applies_to        { return 'PPI::Document' }
 
 sub default_severity  { return $SEVERITY_MEDIUM         }
