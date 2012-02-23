@@ -179,6 +179,14 @@ or full path to the command with C<command_path>.
     command_path = /opt/local/git/bin/git
 
 
+=head1 NOTES
+
+Unlike other policies, this policy does not look at your code but
+rather your environment.  It should B<only> be run as part of the
+development process and B<should not> be run as part of normal
+installation.
+
+
 =head1 AUTHOR
 
 Michael G Schwern <schwern@pobox.com>
