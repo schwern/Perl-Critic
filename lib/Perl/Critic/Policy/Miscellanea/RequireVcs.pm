@@ -12,6 +12,7 @@ use strict;
 use warnings;
 use Readonly;
 use List::MoreUtils qw(uniq);
+use File::Spec;
 
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
@@ -145,13 +146,18 @@ sub _look_up_dirs {
 
     my $updir = File::Spec->updir;
     my $dir   = $self->{_dir};
+    my $max_up = 1024;
+    my $ups    = 0;
     while( -d $dir ) {
         for my $type (@types) {
-            return $self->_look_in_dir($type, $dir);
+            my $type = $self->_look_in_dir($type, $dir);
+            return $type if $type;
         }
 
-        # Up one dir
-        $dir = File::Spec->catdir( $updir, $dir );
+        $dir = File::Spec->catdir( $dir, $updir );
+
+        $ups++;
+        die "Probably in an infinite loop" if $ups > $max_up;
     }
 
     return $FALSE;
