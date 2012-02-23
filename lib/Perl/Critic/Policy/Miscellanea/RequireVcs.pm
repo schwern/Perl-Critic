@@ -136,7 +136,7 @@ sub _do_special_checks {
     return $FALSE;
 }
 
-# Starting at the current directory, look up for
+# Starting at the current directory, look up the directory tree for
 # VCS directories.
 sub _look_up_dirs {
     my $self = shift;
@@ -150,7 +150,7 @@ sub _look_up_dirs {
             return $self->_look_in_dir($type, $dir);
         }
 
-        # Up on dir
+        # Up one dir
         $dir = File::Spec->catdir( $updir, $dir );
     }
 
@@ -167,8 +167,6 @@ sub _look_in_dir {
 
 sub violates {
     my( $self, $elem, $doc ) = @_;
-
-    $DB::single = 1;
 
     # Get the filename we're examining.
     $self->{_filename} = $doc->filename;
