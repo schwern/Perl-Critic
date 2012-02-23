@@ -282,7 +282,7 @@ Test::Perl::Critic::Policy - A framework for testing your custom Policies
     # command-line parameters...
     #
     # You can then test a single policy by running
-    # "perl -Ilib t/policy-test.t My::Policy".
+    # "perl -Ilib t/20_policies.t My::Policy".
     my %args = @ARGV ? ( -policies => [ @ARGV ] ) : ();
     all_policies_ok(%args);
 
