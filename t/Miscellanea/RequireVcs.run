@@ -1,0 +1,44 @@
+## name No type
+## failures 1
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+#----------------------
+
+## name Unrecognized type
+## failures 0
+## error /The value for the Miscellanea::RequireVcs "type" option \("wibblesafe"\) is not one of the allowed values/
+## parms { type => "wibblesafe" }
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+#-----------------------
+
+## name The 'unlisted' type
+## failures 0
+## parms { type => "unlisted" }
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+##############################################################################
+#      $URL$
+#     $Date$
+#   $Author$
+# $Revision$
+##############################################################################
+
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 78
+#   indent-tabs-mode: nil
+#   c-indentation-style: bsd
+# End:
+# ex: set ts=8 sts=4 sw=4 tw=78 ft=perl expandtab shiftround :
+
