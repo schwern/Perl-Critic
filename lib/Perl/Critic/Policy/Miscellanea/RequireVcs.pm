@@ -44,9 +44,20 @@ $VCS_Dirs->{perforce} = $ENV{P4CONFIG} if $ENV{P4CONFIG};
 # Common aliases and abbreviations.
 Readonly::Scalar my $VCS_Aliases => {
     svn         => "subversion",
+    SVN         => "subversion",
+
+    CVS         => "cvs",
+
+    RCS         => "rcs",
+
     hg          => "mercurial",
+
     bzr         => "bazaar",
+
     p4          => "perforce",
+    P4          => "perforce",
+
+    SVK         => "svk",
 };
 
 # Version control systems which may require special logic to identify.
@@ -96,14 +107,21 @@ sub default_themes    { return qw(core pbp maintenance) }
 
 #-----------------------------------------------------------------------------
 
+sub _resolve_type_alias {
+    my( $self, $type ) = @_;
+
+    my $new_type = $VCS_Aliases->{$type};
+    return defined $new_type ? $new_type : $type;
+}
+
 sub _check_one_type {
     my($self, $type) = @_;
 
+    $type = $self->_resolve_type_alias($type);
     return $self->_is_uncheckable($type)   ||
            $self->_do_special_check($type) ||
-           $self->_look_up_dirs($type);
-
-    return $FALSE;
+           $self->_look_up_dirs($type)     ||
+           $FALSE;
 }
 
 sub _check_all_types {
@@ -116,6 +134,7 @@ sub _is_uncheckable {
     my($self, $type) = @_;
 
     return $type if $Uncheckable_VCS->{$type};
+    return $FALSE;
 }
 
 sub _do_special_check {
@@ -167,8 +186,11 @@ sub _look_in_dir {
     my( $self, $type, $dir ) = @_;
 
     my $vcs_dir = $VCS_Dirs->{$type};
+    return $FALSE unless $vcs_dir;
+
     return $type if -d File::Spec->catdir($dir, $vcs_dir);
-    return;
+
+    return $FALSE;
 }
 
 sub violates {

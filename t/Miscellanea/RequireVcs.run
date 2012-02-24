@@ -29,6 +29,40 @@ my $bar = 23;
 my $foo = 42;
 my $bar = 23;
 
+#-----------------------
+
+## name SVK gets a pass
+## filename Foo.pm
+## failures 0
+## parms { type => "svk" }
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+#-----------------------
+
+## name SVK alias also gets a pass
+## filename Foo.pm
+## failures 0
+## parms { type => "SVK" }
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+#-----------------------
+
+## name CVS alias works
+## filename Foo.pm
+## failures 1
+## parms { type => "CVS" }
+## cut
+
+my $foo = 42;
+my $bar = 23;
+
+
 ##############################################################################
 #      $URL$
 #     $Date$
