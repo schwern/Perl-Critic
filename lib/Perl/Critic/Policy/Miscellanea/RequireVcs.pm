@@ -31,7 +31,7 @@ Readonly::Scalar my $EXPL => [ 441 ];
 
 # Identifying directories for various version control systems.
 # The policy will look up directories for them.
-Readonly::Scalar my $VCS_Dirs => {
+my $VCS_Dirs = {
     cvs                 => "CVS",
     subversion          => ".svn",
     git                 => ".git",
@@ -39,6 +39,7 @@ Readonly::Scalar my $VCS_Dirs => {
     bazaar              => ".bzr",
     darcs               => "_darcs",
 };
+$VCS_Dirs->{perforce} = $ENV{P4CONFIG} if $ENV{P4CONFIG};
 
 # Common aliases and abbreviations.
 Readonly::Scalar my $VCS_Aliases => {
@@ -61,7 +62,6 @@ Readonly::Scalar my $VCS_Special_Checks => {
 # A hash of VCS's we cannot check for.
 Readonly::Scalar my $Uncheckable_VCS => {
     map { $_ => 1 } qw(
-        perforce
         svk
         unlisted
     )
@@ -228,8 +228,8 @@ also just tell it by setting the C<type>.
 Recognized version control systems are rcs, cvs, perforce (aka p4), subversion
 (aka svn), svk, git, mercurial (aka hg), bazaar and darcs.
 
-Perforce and SVK cannot currently be detected.  If you're using them, simply
-set the C<type> and the policy will give you a free pass.
+SVK cannot currently be detected.  If you're using it, simply set the
+C<type> to C<svk> and the policy will give you a free pass.
 
 A special value of C<unlisted> is available if your version control is
 not known by this policy.  Using unlisted will satisfy the policy.  We
