@@ -219,6 +219,7 @@ sub violates {
 
     # Get the filename we're examining.
     $self->{_filepath} = $doc->filename;
+    return if !$self->{_filepath};
 
     # Derive the directory the file lives in.
     my @path = File::Spec->splitpath( $self->{_filepath } );
