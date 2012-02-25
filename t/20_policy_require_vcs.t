@@ -14,7 +14,7 @@ use warnings;
 use Perl::Critic::TestUtils qw< fcritique >;
 use Perl::Critic::Utils     qw< $EMPTY >;
 
-use Test::More tests => 48;
+use Test::More;
 
 use File::Path;
 use File::Basename qw(dirname);
@@ -48,8 +48,11 @@ sub write_file {
 }
 
 
+note "Testing simple VCS directory checks";
 for my $vcs_type (keys %VCS_DIRS) {
     my $vcs_dir = $VCS_DIRS{$vcs_type};
+
+    note "Testing $vcs_type with $vcs_dir";
 
     my $tmp = File::Temp->newdir;
     ok chdir $tmp;
@@ -96,3 +99,6 @@ END
 # File::Temp tends to complain if the temp directory you're currently in
 # goes away before END time.
 chdir $ORIG_CWD;
+
+
+done_testing;
