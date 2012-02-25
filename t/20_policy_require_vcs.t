@@ -14,7 +14,7 @@ use warnings;
 use Perl::Critic::TestUtils qw< fcritique >;
 use Perl::Critic::Utils     qw< $EMPTY >;
 
-use Test::More tests => 4;
+use Test::More tests => 48;
 
 use File::Path;
 use File::Basename qw(dirname);
@@ -25,6 +25,14 @@ use Readonly;
 
 Readonly::Scalar my $ORIG_CWD => abs_path();
 Readonly::Scalar my $POLICY   => "Miscellanea::RequireVcs";
+Readonly::Hash   my %VCS_DIRS => (
+    cvs         => 'CVS',
+    svn         => '.svn',
+    git         => '.git',
+    mercurial   => '.hg',
+    bazaar      => '.bzr',
+    darcs       => '_darcs',
+);
 
 sub write_file {
     my( $file, $text ) = @_;
@@ -35,10 +43,14 @@ sub write_file {
     open my $fh, '>', $file or die "Unable to open $file: $!";
     print $fh $text;
     close $fh or die "Can't close $file: $!";
+
+    return;
 }
 
 
-{
+for my $vcs_type (keys %VCS_DIRS) {
+    my $vcs_dir = $VCS_DIRS{$vcs_type};
+
     my $tmp = File::Temp->newdir;
     ok chdir $tmp;
 
@@ -47,15 +59,38 @@ sub write_file {
 $foo = 42;
 END
 
-    my $c = Perl::Critic->new( -profile => 'NONE' );
-    $c->add_policy(-policy => $POLICY);
+    my $critic_no_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_no_type->add_policy(-policy => $POLICY);
 
-    my @violations = $c->critique($pm_file);
-    is @violations, 1;
+    my $critic_right_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_right_type->add_policy(-policy => $POLICY, -config => { type => $vcs_type });
 
-    ok mkdir '.git';
-    @violations = $c->critique($pm_file);
-    is @violations, 0;
+    my $critic_wrong_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_wrong_type->add_policy(-policy => $POLICY, -config => { type => 'rcs' });
+
+    my @violations;
+
+    # Try various configs with no VCS dir.  All should fail.
+    @violations = $critic_no_type->critique($pm_file);
+    is @violations, 1, "no VCS dir, no type";
+
+    @violations = $critic_right_type->critique($pm_file);
+    is @violations, 1, "no VCS dir, right type";
+
+    @violations = $critic_wrong_type->critique($pm_file);
+    is @violations, 1, "no VCS dir, wrong type";
+
+    # Create the VCS dir
+    ok mkdir $vcs_dir;
+
+    @violations = $critic_no_type->critique($pm_file);
+    is @violations, 0, "VCS dir, no type";
+
+    @violations = $critic_right_type->critique($pm_file);
+    is @violations, 0, "VCS dir, right type";
+
+    @violations = $critic_wrong_type->critique($pm_file);
+    is @violations, 1, "VCS dir, wrong type";
 }
 
 chdir $ORIG_CWD;
