@@ -87,7 +87,7 @@ sub build_required_module_versions {
     return (
         'lib'           => 0,
         'Test::Deep'    => 0,
-        'Test::More'    => 0,
+        'Test::More'    => 0.92,
     );
 }
 
