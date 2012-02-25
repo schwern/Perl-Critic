@@ -93,4 +93,6 @@ END
     is @violations, 1, "VCS dir, wrong type";
 }
 
+# File::Temp tends to complain if the temp directory you're currently in
+# goes away before END time.
 chdir $ORIG_CWD;
