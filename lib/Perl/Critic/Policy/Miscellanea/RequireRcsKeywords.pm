@@ -146,11 +146,9 @@ distribution.
 
 =head1 DESCRIPTION
 
-Every code file, no matter how small, should be kept in a
-source-control repository.  Adding the magical RCS keywords to your
-file helps the reader know where the file comes from, in case he or
-she needs to modify it.  This Policy scans your file for comments that
-look like this:
+Adding the magical RCS keywords to your file helps the reader know where the
+file comes from, in case he or she needs to modify it.  This Policy scans your
+file for comments that look like this:
 
     # $Revision$
     # $Source: /myproject/lib/foo.pm $
@@ -175,6 +173,11 @@ F<.perlcriticrc> file:
 See the documentation on RCS for a list of supported keywords.  Many
 source control systems are descended from RCS, so the keywords
 supported by CVS and Subversion are probably the same.
+
+If you're not using a version control system which supports RCS keywords, this
+policy can be disabled like so:
+
+    [-Miscellanea::RequireRcsKeywords]
 
 
 =head1 AUTHOR
