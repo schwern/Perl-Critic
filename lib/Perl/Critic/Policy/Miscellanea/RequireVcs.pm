@@ -13,6 +13,7 @@ use warnings;
 use Readonly;
 use List::MoreUtils qw(uniq);
 use File::Spec;
+use File::Basename qw(dirname basename);
 
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
@@ -65,8 +66,13 @@ Readonly::Scalar my $VCS_Special_Checks => {
     # Check for the RCS ,v file.
     rcs         => sub {
         my $self = shift;
-        my $vcs_file = $self->{_filename}.",v";
-        return -e $vcs_file || -e File::Spec->catfile("RCS", $vcs_file);
+
+        my $dir  = dirname( $self->{_filename} );
+        my $file = basename( $self->{_filename} );
+        my $vcs_file = $file.",v";
+
+        return -e File::Spec->catfile($dir, $vcs_file)          ||
+               -e File::Spec->catfile($dir, "RCS", $vcs_file);
     },
 };
 
