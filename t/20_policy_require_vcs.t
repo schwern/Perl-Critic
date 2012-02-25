@@ -194,6 +194,53 @@ END
 }
 
 
+note "Testing Perforce"; {
+    my $tmp = File::Temp->newdir;
+    ok chdir $tmp;
+
+    my $pm_file = "CheckRCS.pm";
+    my $pm_path = File::Spec->catdir("lib", "CheckP4.pm");
+    write_file $pm_path, <<'END';
+$foo = 42;
+END
+
+    local $ENV{P4CONFIG} = '.p4config';
+
+    my $critic_no_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_no_type->add_policy(-policy => $POLICY);
+
+    my $critic_right_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_right_type->add_policy(-policy => $POLICY, -config => { type => 'perforce' });
+
+    my $critic_wrong_type = Perl::Critic->new( -profile => 'NONE' );
+    $critic_wrong_type->add_policy(-policy => $POLICY, -config => { type => 'git' });
+
+    my @violations;
+
+    note "No p4config";
+    @violations = $critic_no_type->critique($pm_path);
+    is @violations, 1, "no type";
+
+    @violations = $critic_right_type->critique($pm_path);
+    is @violations, 1, "right type";
+
+    @violations = $critic_wrong_type->critique($pm_path);
+    is @violations, 1, "wrong type";
+
+    note "Add a p4config";
+    write_file $ENV{P4CONFIG}, "whatever";
+
+    @violations = $critic_no_type->critique($pm_path);
+    is @violations, 0, "no type";
+
+    @violations = $critic_right_type->critique($pm_path);
+    is @violations, 0, "right type";
+
+    @violations = $critic_wrong_type->critique($pm_path);
+    is @violations, 1, "wrong type";
+}
+
+
 # File::Temp tends to complain if the temp directory you're currently in
 # goes away before END time.
 chdir $ORIG_CWD;

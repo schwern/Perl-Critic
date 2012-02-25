@@ -17,7 +17,6 @@ use warnings;
 use Readonly;
 use List::MoreUtils qw(uniq);
 use File::Spec;
-use File::Basename qw(dirname basename);
 
 use Perl::Critic::Utils qw{
     :booleans :characters :severities :data_conversion
@@ -43,8 +42,8 @@ my $VCS_Dirs = {
     mercurial           => ".hg",
     bazaar              => ".bzr",
     darcs               => "_darcs",
+    perforce            => $ENV{P4CONFIG},
 };
-$VCS_Dirs->{perforce} = $ENV{P4CONFIG} if $ENV{P4CONFIG};
 
 # Common aliases and abbreviations.
 Readonly::Scalar my $VCS_Aliases => {
@@ -71,12 +70,12 @@ Readonly::Scalar my $VCS_Special_Checks => {
     rcs         => sub {
         my $self = shift;
 
-        my $dir  = dirname( $self->{_filename} );
-        my $file = basename( $self->{_filename} );
-        my $vcs_file = $file.",v";
+        my $dir  = $self->{_dir};
+        my $file = $self->{_filename};
+        my $vcs_file = $self->{_filename}.",v";
 
-        return -e File::Spec->catfile($dir, $vcs_file)          ||
-               -e File::Spec->catfile($dir, "RCS", $vcs_file);
+        return -e File::Spec->catfile($self->{_dir}, $vcs_file)          ||
+               -e File::Spec->catfile($self->{_dir}, "RCS", $vcs_file);
     },
 };
 
@@ -114,6 +113,18 @@ sub applies_to        { return 'PPI::Document' }
 
 sub default_severity  { return $SEVERITY_MEDIUM         }
 sub default_themes    { return qw(core pbp maintenance) }
+
+#-----------------------------------------------------------------------------
+
+sub initialize_if_enabled {
+    my $self = shift;
+
+    # Recheck the value of P4CONFIG.  Mostly useful for testing.
+    $VCS_Dirs->{perforce} = $ENV{P4CONFIG};
+
+    return $TRUE;
+}
+
 
 #-----------------------------------------------------------------------------
 
@@ -198,7 +209,7 @@ sub _look_in_dir {
     my $vcs_dir = $VCS_Dirs->{$type};
     return $FALSE unless $vcs_dir;
 
-    return $type if -d File::Spec->catdir($dir, $vcs_dir);
+    return $type if -e File::Spec->catdir($dir, $vcs_dir);
 
     return $FALSE;
 }
@@ -207,11 +218,11 @@ sub violates {
     my( $self, $elem, $doc ) = @_;
 
     # Get the filename we're examining.
-    $self->{_filename} = $doc->filename;
+    $self->{_filepath} = $doc->filename;
 
     # Derive the directory the file lives in.
-    my @path = File::Spec->splitpath( $self->{_filename } );
-    pop @path;
+    my @path = File::Spec->splitpath( $self->{_filepath } );
+    $self->{_filename} = pop @path;
     $self->{_dir} = File::Spec->catpath(@path, "");
 
     if( my $type = $self->{_type} ) {
