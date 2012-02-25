@@ -7,6 +7,10 @@
 
 package Perl::Critic::Policy::Miscellanea::RequireVcs;
 
+# Note that module goes through some pains to avoid chdir'ing.
+# Doing so runs the risk of an exception leaving the process in
+# a strange directory.
+
 use 5.006001;
 use strict;
 use warnings;
